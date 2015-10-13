@@ -34,10 +34,15 @@ typedef struct TinyWavHeader {
   uint32_t Subchunk2Size;
 } TinyWavHeader;
 
-int tinywav_new(TinyWav *tw, int16_t numChannels, int32_t samplerate, const char *path) {
+int tinywav_new(TinyWav *tw,
+    int16_t numChannels, int32_t samplerate,
+    TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
+    const char *path) {
   tw->f = fopen(path, "w");
   tw->numChannels = numChannels;
   tw->totalFramesWritten = 0;
+  tw->sampFmt = sampFmt;
+  tw->chanFmt = chanFmt;
 
   // prepare WAV header
   TinyWavHeader h;
@@ -46,12 +51,12 @@ int tinywav_new(TinyWav *tw, int16_t numChannels, int32_t samplerate, const char
   h.Format = htonl(0x57415645); // "WAVE"
   h.Subchunk1ID = htonl(0x666d7420); // "fmt "
   h.Subchunk1Size = 16; // PCM
-  h.AudioFormat = 1; // PCM
+  h.AudioFormat = (tw->sampFmt-1); // 1 PCM, 3 IEEE float
   h.NumChannels = numChannels;
   h.SampleRate = samplerate;
-  h.ByteRate = samplerate * numChannels * sizeof(int16_t); // 16-bit samples
-  h.BlockAlign = numChannels * sizeof(int16_t);
-  h.BitsPerSample = 16;
+  h.ByteRate = samplerate * numChannels * tw->sampFmt;
+  h.BlockAlign = numChannels * tw->sampFmt;
+  h.BitsPerSample = 8*tw->sampFmt;
   h.Subchunk2ID = htonl(0x64617461); // "data"
   h.Subchunk2Size = 0; // fill this in on file-close
 
@@ -61,40 +66,75 @@ int tinywav_new(TinyWav *tw, int16_t numChannels, int32_t samplerate, const char
   return 0;
 }
 
-size_t tinywav_write_f(TinyWav *tw, void *f, int len, TinyWavChannelFormat fmt) {
-  int16_t z[tw->numChannels*len];
+size_t tinywav_write_f(TinyWav *tw, void *f, int len) {
+  switch (tw->sampFmt) {
+    case TW_INT16: {
+      int16_t z[tw->numChannels*len];
+      switch (tw->chanFmt) {
+        case TW_INTERLEAVED: {
+          return 0;
+        }
+        case TW_INLINE: {
+          const float *const x = (const float *const) f;
+          for (int i = 0, k = 0; i < len; ++i) {
+            for (int j = 0; j < tw->numChannels; ++j) {
+              z[k++] = (int16_t) (x[j*len+i] * 32767.0f);
+            }
+          }
+          break;
+        }
+        case TW_SPLIT: {
+          const float **const x = (const float **const) f;
+          for (int i = 0, k = 0; i < len; ++i) {
+            for (int j = 0; j < tw->numChannels; ++j) {
+              z[k++] = (int16_t) (x[j][i] * 32767.0f);
+            }
+          }
+          break;
+        }
+        default: return 0;
+      }
 
-  switch (fmt) {
-    case TW_INTERLEAVED: {
-      return 0;
-    }
-    case TW_INLINE: {
-      const float *const x = (const float *const) f;
-      for (int i = 0, k = 0; i < len; ++i) {
-        for (int j = 0; j < tw->numChannels; ++j) {
-          z[k++] = (int16_t) (x[j*len+i] * 32767.0f);
-        }
-      }
+      tw->totalFramesWritten += len;
+      return fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
       break;
     }
-    case TW_SPLIT: {
-      const float **const x = (const float **const) f;
-      for (int i = 0, k = 0; i < len; ++i) {
-        for (int j = 0; j < tw->numChannels; ++j) {
-          z[k++] = (int16_t) (x[j][i] * 32767.0f);
+    case TW_FLOAT32: {
+      float z[tw->numChannels*len];
+      switch (tw->chanFmt) {
+        case TW_INTERLEAVED: {
+          return 0;
         }
+        case TW_INLINE: {
+          const float *const x = (const float *const) f;
+          for (int i = 0, k = 0; i < len; ++i) {
+            for (int j = 0; j < tw->numChannels; ++j) {
+              z[k++] = x[j*len+i];
+            }
+          }
+          break;
+        }
+        case TW_SPLIT: {
+          const float **const x = (const float **const) f;
+          for (int i = 0, k = 0; i < len; ++i) {
+            for (int j = 0; j < tw->numChannels; ++j) {
+              z[k++] = x[j][i];
+            }
+          }
+          break;
+        }
+        default: return 0;
       }
-      break;
+
+      tw->totalFramesWritten += len;
+      return fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
     }
     default: return 0;
   }
-
-  tw->totalFramesWritten += len;
-  return fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
 }
 
 void tinywav_close(TinyWav *tw) {
-  uint32_t data_len = tw->totalFramesWritten * tw->numChannels * sizeof(int16_t);
+  uint32_t data_len = tw->totalFramesWritten * tw->numChannels * tw->sampFmt;
 
   // set length of data
   fseek(tw->f, 4, SEEK_SET);

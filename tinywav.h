@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 // http://soundfile.sapp.org/doc/WaveFormat/
+// http://www-mmsp.ece.mcgill.ca/documents/AudioFormats/WAVE/WAVE.html
 
 typedef enum TinyWavChannelFormat {
   TW_INTERLEAVED, // channel buffer is interleaved e.g. [LRLRLRLR]
@@ -32,17 +33,25 @@ typedef enum TinyWavChannelFormat {
   TW_SPLIT        // channel buffer is split e.g. [[LLLL],[RRRR]]
 } TinyWavChannelFormat;
 
+typedef enum TinyWavSampleFormat {
+  TW_INT16 = 2,  // two byte signed integer
+  TW_FLOAT32 = 4 // four byte IEEE float
+} TinyWavSampleFormat;
+
 typedef struct TinyWav {
   FILE *f;
   int16_t numChannels;
   uint32_t totalFramesWritten;
+  TinyWavChannelFormat chanFmt;
+  TinyWavSampleFormat sampFmt;
 } TinyWav;
 
-int tinywav_new(TinyWav *tw, int16_t numChannels, int32_t samplerate, const char *path);
+int tinywav_new(TinyWav *tw,
+    int16_t numChannels, int32_t samplerate,
+    TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
+    const char *path);
 
-size_t tinywav_write_f(TinyWav *tw, void *f, int len, TinyWavChannelFormat fmt);
-
-void tinywav_read(TinyWav *tw, float *const f, size_t len);
+size_t tinywav_write_f(TinyWav *tw, void *f, int len);
 
 void tinywav_close(TinyWav *tw);
 
