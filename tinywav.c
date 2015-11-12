@@ -103,13 +103,19 @@ size_t tinywav_write_f(TinyWav *tw, void *f, int len) {
       float z[tw->numChannels*len];
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
-          return 0;
-        }
-        case TW_INLINE: {
           const float *const x = (const float *const) f;
           for (int i = 0, k = 0; i < len; ++i) {
             for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = x[j*len+i];
+              z[k++] = x[i*tw->numChannels+j];
+            }
+          }
+          break;
+        }
+        case TW_INLINE: {
+          const float *const x = (const float *const) f;
+          for (int i = 0, k = 0; i < tw->numChannels; ++i) {
+            for (int j = 0; j < len; ++j) {
+              z[k++] = x[i*tw->numChannels+j];
             }
           }
           break;
