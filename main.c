@@ -21,15 +21,12 @@
 #define BLOCK_SIZE 512
 #define NUM_ITERATIONS 3
 
-/**
- * A basic program to listen to port 9000 and print received OSC packets.
- */
 int main(int argc, char *argv[]) {
   if (argc < 2) return -1;
   const char *outputPath = argv[1];
 
   TinyWav tw;
-  tinywav_new(&tw, NUM_CHANNELS, SAMPLE_RATE, outputPath);
+  tinywav_new(&tw, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
 
   for (int i = 0; i < NUM_ITERATIONS; i++) {
     float buffer[BLOCK_SIZE];
@@ -37,7 +34,7 @@ int main(int argc, char *argv[]) {
       buffer[j] = j / ((float) BLOCK_SIZE);
     }
 
-    tinywav_write_f(&tw, buffer, BLOCK_SIZE, TW_INLINE);
+    tinywav_write_f(&tw, buffer, BLOCK_SIZE);
   }
 
   tinywav_close(&tw);

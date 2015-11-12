@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +55,8 @@ int tinywav_new(TinyWav *tw,
 size_t tinywav_write_f(TinyWav *tw, void *f, int len);
 
 void tinywav_close(TinyWav *tw);
+
+bool tinywav_isOpen(TinyWav *tw);
 
 #ifdef __cplusplus
 }

@@ -15,6 +15,7 @@
  */
 
 
+#include <assert.h>
 #include <netinet/in.h>
 #include "tinywav.h"
 
@@ -39,6 +40,7 @@ int tinywav_new(TinyWav *tw,
     TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
     const char *path) {
   tw->f = fopen(path, "w");
+  assert(tw->f != NULL);
   tw->numChannels = numChannels;
   tw->totalFramesWritten = 0;
   tw->sampFmt = sampFmt;
@@ -145,4 +147,9 @@ void tinywav_close(TinyWav *tw) {
   fwrite(&data_len, sizeof(uint32_t), 1, tw->f);
 
   fclose(tw->f);
+  tw->f = NULL;
+}
+
+bool tinywav_isOpen(TinyWav *tw) {
+  return (tw->f != NULL);
 }
