@@ -1,20 +1,27 @@
 # TinyWav
 
-TinyWav is a minimal WAV audio file library written in C.
+TinyWav is a minimal C library for writing 32-bit float WAV audio files.
 
 ## Code Example
 ### Writing
 ```C
 #include "tinywav.h"
 
+#define NUM_CHANNELS 1
+#define SAMPLE_RATE 48000
+
 tinywav tw;
 tinywav_new(&tw,
-    1, 48000,
-    TW_FLOAT32, TW_INLINE,
-    "/Users/mhroth/Desktop/hello.wav");
+    NUM_CHANNELS,
+    SAMPLE_RATE,
+    TW_FLOAT32, // the output samples will be 32-bit floats. TW_INT16 is also supported
+    TW_INLINE,  // the samples will be presented inlined in a single buffer.
+                // Other options include TW_INTERLEAVED and TW_SPLIT
+    "/Users/mhroth/Desktop/hello.wav" // the output path
+);
 
 for (int i = 0; i < 100; i++) {
-  float samples[480];
+  float samples[480]; // samples are always presented in float32 format
   tinywav_write_f(&tw, samples, sizeof(samples));
 }
 
