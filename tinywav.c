@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015,2016, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +16,13 @@
 
 
 #include <assert.h>
+#if _WIN32
+#include <winsock2.h>
+#include <malloc.h>
+#else
+#include <alloca.h>
 #include <netinet/in.h>
+#endif
 #include "tinywav.h"
 
 typedef struct TinyWavHeader {
@@ -39,7 +45,12 @@ int tinywav_new(TinyWav *tw,
     int16_t numChannels, int32_t samplerate,
     TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
     const char *path) {
+#if _WIN32
+  errno_t err = fopen_s(&tw->f, path, "w");
+  assert(err == 0);
+#else
   tw->f = fopen(path, "w");
+#endif
   assert(tw->f != NULL);
   tw->numChannels = numChannels;
   tw->totalFramesWritten = 0;
@@ -71,11 +82,12 @@ int tinywav_new(TinyWav *tw,
 size_t tinywav_write_f(TinyWav *tw, void *f, int len) {
   switch (tw->sampFmt) {
     case TW_INT16: {
-      int16_t z[tw->numChannels*len];
+      int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
+          const float *const x = (const float *const) f;
           for (int i = 0; i < tw->numChannels*len; ++i) {
-            z[i] = (int16_t) (f[i] * 32767.0f);
+            z[i] = (int16_t) (x[i] * 32767.0f);
           }
           break;
         }
@@ -105,7 +117,7 @@ size_t tinywav_write_f(TinyWav *tw, void *f, int len) {
       break;
     }
     case TW_FLOAT32: {
-      float z[tw->numChannels*len];
+      float *z = (float *) alloca(tw->numChannels*len*sizeof(float));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
           tw->totalFramesWritten += len;
