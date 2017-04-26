@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2017, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,10 +52,21 @@ int tinywav_new(TinyWav *tw,
     TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
     const char *path);
 
+/**
+ * Write sample data to file.
+ *
+ * @param tw  The TinyWav structure which has already been prepared.
+ * @param f  A pointer to the sample data to write.
+ * @param len  The number of frames to write.
+ *
+ * @return The total number of samples written to file.
+ */
 size_t tinywav_write_f(TinyWav *tw, void *f, int len);
 
+/** Stop writing to the file. The Tinywav struct is now invalid. */
 void tinywav_close(TinyWav *tw);
 
+/** Returns true if the Tinywav struct is available to write. False otherwise. */
 bool tinywav_isOpen(TinyWav *tw);
 
 #ifdef __cplusplus
