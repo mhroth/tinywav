@@ -14,8 +14,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
- #ifndef _TINY_WAV_
- #define _TINY_WAV_
+#ifndef _TINY_WAV_
+#define _TINY_WAV_
 
 #include <stdint.h>
 #include <stdio.h>
