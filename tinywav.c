@@ -26,19 +26,20 @@
 #include "tinywav.h"
 
 typedef struct TinyWavHeader {
-  uint32_t ChunkID;
-  uint32_t ChunkSize;
-  uint32_t Format;
-  uint32_t Subchunk1ID;
-  uint32_t Subchunk1Size;
-  uint16_t AudioFormat;
-  uint16_t NumChannels;
-  uint32_t SampleRate;
-  uint32_t ByteRate;
-  uint16_t BlockAlign;
-  uint16_t BitsPerSample;
-  uint32_t Subchunk2ID;
-  uint32_t Subchunk2Size;
+  //                       len | offset
+  uint32_t ChunkID;       // 4 |  0
+  uint32_t ChunkSize;     // 4 |  4
+  uint32_t Format;        // 4 |  8
+  uint32_t Subchunk1ID;   // 4 | 12
+  uint32_t Subchunk1Size; // 4 | 16
+  uint16_t AudioFormat;   // 2 | 20
+  uint16_t NumChannels;   // 2 | 22
+  uint32_t SampleRate;    // 4 | 24
+  uint32_t ByteRate;      // 4 | 28
+  uint16_t BlockAlign;    // 2 | 32
+  uint16_t BitsPerSample; // 2 | 34
+  uint32_t Subchunk2ID;   // 4 | 36
+  uint32_t Subchunk2Size; // 4 | 40
 } TinyWavHeader;
 
 int tinywav_new(TinyWav *tw,
