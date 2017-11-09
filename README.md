@@ -1,6 +1,6 @@
 # TinyWav
 
-TinyWav is a minimal C library for writing 32-bit float WAV audio files.
+A minimal C library for reading and writing (32-bit float) WAV audio files.
 
 ## Code Example
 ### Writing
