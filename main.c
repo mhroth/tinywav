@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   const char *outputPath = argv[1];
 
   TinyWav tw;
-  tinywav_new(&tw, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
+  tinywav_open_write(&tw, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
 
   for (int i = 0; i < NUM_ITERATIONS; i++) {
     float buffer[BLOCK_SIZE];
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     tinywav_write_f(&tw, buffer, BLOCK_SIZE);
   }
 
-  tinywav_close(&tw);
+  tinywav_close_write(&tw);
 
   return 0;
 }
