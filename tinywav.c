@@ -91,7 +91,8 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   } else if (tw->h.BitsPerSample == 16 && tw->h.AudioFormat == 1) {
     tw->sampFmt = TW_INT16; // file has 16-bit int samples
   } else {
-    assert(0 && "Unsupported wav file sample format. Only 32-bit float and 16-bit int are supported");
+    tw->sampFmt = TW_FLOAT32;
+    printf("Warning: wav file has %d bits per sample (int), which is not natively supported yet. Treating them as float; you may want to convert them manually after reading.\n", tw->h.BitsPerSample);
   }
 
   tw->numFramesInHeader = tw->h.Subchunk2Size / (tw->numChannels * tw->sampFmt);
