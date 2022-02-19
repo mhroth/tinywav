@@ -40,7 +40,8 @@ int tinywav_open_write(TinyWav *tw,
 #endif
   assert(tw->f != NULL);
   tw->numChannels = numChannels;
-  tw->totalFramesWritten = 0;
+  tw->numFramesInHeader = -1; // not used for writer
+  tw->totalFramesReadWritten = 0;
   tw->sampFmt = sampFmt;
   tw->chanFmt = chanFmt;
 
@@ -66,7 +67,7 @@ int tinywav_open_write(TinyWav *tw,
   return 0;
 }
 
-int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt, TinyWavSampleFormat sampFmt) {
+int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt) {
   tw->f = fopen(path, "rb");
   assert(tw->f != NULL);
   size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
@@ -84,9 +85,18 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     
   tw->numChannels = tw->h.NumChannels;
   tw->chanFmt = chanFmt;
-  tw->sampFmt = sampFmt;
+
+  if (tw->h.BitsPerSample == 32 && tw->h.AudioFormat == 3) {
+    tw->sampFmt = TW_FLOAT32; // file has 32-bit IEEE float samples
+  } else if (tw->h.BitsPerSample == 16 && tw->h.AudioFormat == 1) {
+    tw->sampFmt = TW_INT16; // file has 16-bit int samples
+  } else {
+    assert(0 && "Unsupported wav file sample format. Only 32-bit float and 16-bit int are supported");
+  }
+
+  tw->numFramesInHeader = tw->h.Subchunk2Size / (tw->numChannels * tw->sampFmt);
+  tw->totalFramesReadWritten = 0;
   
-  tw->totalFramesWritten = tw->h.Subchunk2Size / (tw->numChannels * tw->sampFmt);
   return 0;
 }
 
@@ -123,7 +133,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
         default: return 0;
       }
       
-      tw->totalFramesWritten += len;
+      tw->totalFramesReadWritten += len;
       return (int) fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
     }
     case TW_FLOAT32: {
@@ -199,9 +209,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesWritten += len;
-      return fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
-      break;
+      tw->totalFramesReadWritten += len;
       samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
       return (int) samples_written / tw->numChannels;
     }
@@ -209,7 +217,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       float *z = (float *) alloca(tw->numChannels*len*sizeof(float));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
-          tw->totalFramesWritten += len;
+          tw->totalFramesReadWritten += len;
           return fwrite(f, sizeof(float), tw->numChannels*len, tw->f);
         }
         case TW_INLINE: {
@@ -233,8 +241,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesWritten += len;
-      return fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
+      tw->totalFramesReadWritten += len;
       samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
       return (int) samples_written / tw->numChannels;
     }
@@ -243,7 +250,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
 }
 
 void tinywav_close_write(TinyWav *tw) {
-  uint32_t data_len = tw->totalFramesWritten * tw->numChannels * tw->sampFmt;
+  uint32_t data_len = tw->totalFramesReadWritten * tw->numChannels * tw->sampFmt;
 
   // set length of data
   fseek(tw->f, 4, SEEK_SET);
