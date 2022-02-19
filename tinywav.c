@@ -102,39 +102,35 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
 
 int tinywav_read_f(TinyWav *tw, void *data, int len) {
   switch (tw->sampFmt) {
-    case TW_INT16: { //TODO(gio): implement TW_INT16 conversion
-      int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
+    case TW_INT16: {
+      size_t samples_read = 0;
+      int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
+      samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
       switch (tw->chanFmt) {
-        case TW_INTERLEAVED: {
-          const float *const x = (const float *const) data;
-          for (int i = 0; i < tw->numChannels*len; ++i) {
-            z[i] = (int16_t) (x[i] * 32767.0f);
+        case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
+          for (int pos = 0; pos < tw->numChannels * len; pos++) {
+            ((float *) data)[pos] = (float) interleaved_data[pos] / INT16_MAX;
           }
-          break;
+          return (int) (samples_read/tw->numChannels);
         }
-        case TW_INLINE: {
-          const float *const x = (const float *const) data;
-          for (int i = 0, k = 0; i < len; ++i) {
-            for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j*len+i] * 32767.0f);
+        case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
+          for (int i = 0, pos = 0; i < tw->numChannels; i++) {
+            for (int j = i; j < len * tw->numChannels; j += tw->numChannels, ++pos) {
+              ((float *) data)[pos] = (float) interleaved_data[j] / INT16_MAX;
             }
           }
-          break;
+          return (int) (samples_read/tw->numChannels);
         }
-        case TW_SPLIT: {
-          const float **const x = (const float **const) data;
-          for (int i = 0, k = 0; i < len; ++i) {
-            for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j][i] * 32767.0f);
+        case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
+          for (int i = 0, pos = 0; i < tw->numChannels; i++) {
+            for (int j = 0; j < len; j++, ++pos) {
+              ((float **) data)[i][j] = (float) interleaved_data[j*tw->numChannels + i] / INT16_MAX;
             }
           }
-          break;
+          return (int) (samples_read/tw->numChannels);
         }
         default: return 0;
       }
-      
-      tw->totalFramesReadWritten += len;
-      return (int) fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
     }
     case TW_FLOAT32: {
       size_t samples_read = 0;
@@ -184,7 +180,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         case TW_INTERLEAVED: {
           const float *const x = (const float *const) f;
           for (int i = 0; i < tw->numChannels*len; ++i) {
-            z[i] = (int16_t) (x[i] * 32767.0f);
+            z[i] = (int16_t) (x[i] * INT16_MAX);
           }
           break;
         }
@@ -192,7 +188,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           const float *const x = (const float *const) f;
           for (int i = 0, k = 0; i < len; ++i) {
             for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j*len+i] * 32767.0f);
+              z[k++] = (int16_t) (x[j*len+i] * INT16_MAX);
             }
           }
           break;
@@ -201,7 +197,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           const float **const x = (const float **const) f;
           for (int i = 0, k = 0; i < len; ++i) {
             for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j][i] * 32767.0f);
+              z[k++] = (int16_t) (x[j][i] * INT16_MAX);
             }
           }
           break;
