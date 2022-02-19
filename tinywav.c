@@ -81,7 +81,6 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
   }
   assert(tw->h.Subchunk2ID == htonl(0x64617461));    // "data"
-  fread(&tw->h.Subchunk2Size, 4, 1, tw->f);
   
   tw->numChannels = tw->h.NumChannels;
   tw->chanFmt = chanFmt;
