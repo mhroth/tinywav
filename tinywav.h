@@ -28,6 +28,7 @@ extern "C" {
 #endif
 
 // http://soundfile.sapp.org/doc/WaveFormat/
+
 typedef struct TinyWavHeader {
   uint32_t ChunkID;
   uint32_t ChunkSize;
@@ -43,7 +44,7 @@ typedef struct TinyWavHeader {
   uint32_t Subchunk2ID;
   uint32_t Subchunk2Size;
 } TinyWavHeader;
-
+  
 typedef enum TinyWavChannelFormat {
   TW_INTERLEAVED, // channel buffer is interleaved e.g. [LRLRLRLR]
   TW_INLINE,      // channel buffer is inlined e.g. [LLLLRRRR]
@@ -59,7 +60,7 @@ typedef struct TinyWav {
   FILE *f;
   TinyWavHeader h;
   int16_t numChannels;
-  uint32_t totalFramesWritten;
+  uint32_t totalFramesWritten; ///< this is =numSamples when reading a file
   TinyWavChannelFormat chanFmt;
   TinyWavSampleFormat sampFmt;
 } TinyWav;
@@ -124,7 +125,7 @@ void tinywav_close_write(TinyWav *tw);
 
 /** Returns true if the Tinywav struct is available to write or write. False otherwise. */
 bool tinywav_isOpen(TinyWav *tw);
-
+  
 #ifdef __cplusplus
 }
 #endif

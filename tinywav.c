@@ -19,8 +19,9 @@
 #include <assert.h>
 #include <string.h>
 #if _WIN32
-#include <winsock2.h>
+#include <winsock.h>
 #include <malloc.h>
+#pragma comment(lib, "Ws2_32.lib")
 #else
 #include <alloca.h>
 #include <netinet/in.h>
@@ -68,7 +69,6 @@ int tinywav_open_write(TinyWav *tw,
 int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt, TinyWavSampleFormat sampFmt) {
   tw->f = fopen(path, "rb");
   assert(tw->f != NULL);
-  
   size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
   assert(ret > 0);
   assert(tw->h.ChunkID == htonl(0x52494646));        // "RIFF"
@@ -81,7 +81,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
   }
   assert(tw->h.Subchunk2ID == htonl(0x64617461));    // "data"
-  
+    
   tw->numChannels = tw->h.NumChannels;
   tw->chanFmt = chanFmt;
   tw->sampFmt = sampFmt;
