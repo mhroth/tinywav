@@ -173,7 +173,6 @@ void tinywav_close_read(TinyWav *tw) {
 }
 
 int tinywav_write_f(TinyWav *tw, void *f, int len) {
-  size_t samples_written = 0;
   switch (tw->sampFmt) {
     case TW_INT16: {
       int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
@@ -181,7 +180,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         case TW_INTERLEAVED: {
           const float *const x = (const float *const) f;
           for (int i = 0; i < tw->numChannels*len; ++i) {
-            z[i] = (int16_t) (x[i] * INT16_MAX);
+            z[i] = (int16_t) (x[i] * (float) INT16_MAX);
           }
           break;
         }
@@ -189,7 +188,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           const float *const x = (const float *const) f;
           for (int i = 0, k = 0; i < len; ++i) {
             for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j*len+i] * INT16_MAX);
+              z[k++] = (int16_t) (x[j*len+i] * (float) INT16_MAX);
             }
           }
           break;
@@ -198,7 +197,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           const float **const x = (const float **const) f;
           for (int i = 0, k = 0; i < len; ++i) {
             for (int j = 0; j < tw->numChannels; ++j) {
-              z[k++] = (int16_t) (x[j][i] * INT16_MAX);
+              z[k++] = (int16_t) (x[j][i] * (float) INT16_MAX);
             }
           }
           break;
@@ -207,7 +206,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       }
 
       tw->totalFramesReadWritten += len;
-      samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
+      size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
       return (int) samples_written / tw->numChannels;
     }
     case TW_FLOAT32: {
@@ -215,7 +214,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
           tw->totalFramesReadWritten += len;
-          return fwrite(f, sizeof(float), tw->numChannels*len, tw->f);
+          return (int) fwrite(f, sizeof(float), tw->numChannels*len, tw->f);
         }
         case TW_INLINE: {
           const float *const x = (const float *const) f;
@@ -239,7 +238,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       }
 
       tw->totalFramesReadWritten += len;
-      samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
+      size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
       return (int) samples_written / tw->numChannels;
     }
     default: return 0;
