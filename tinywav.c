@@ -104,59 +104,59 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
 int tinywav_read_f(TinyWav *tw, void *data, int len) {
   switch (tw->sampFmt) {
     case TW_INT16: {
-      size_t samples_read = 0;
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
-      samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
+      size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
+      int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
-          for (int pos = 0; pos < tw->numChannels * len; pos++) {
+          for (int pos = 0; pos < tw->numChannels * valid_len; pos++) {
             ((float *) data)[pos] = (float) interleaved_data[pos] / INT16_MAX;
           }
-          return (int) (samples_read/tw->numChannels);
+          return valid_len;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = i; j < len * tw->numChannels; j += tw->numChannels, ++pos) {
+            for (int j = i; j < valid_len * tw->numChannels; j += tw->numChannels, ++pos) {
               ((float *) data)[pos] = (float) interleaved_data[j] / INT16_MAX;
             }
           }
-          return (int) (samples_read/tw->numChannels);
+          return valid_len;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = 0; j < len; j++, ++pos) {
+            for (int j = 0; j < valid_len; j++, ++pos) {
               ((float **) data)[i][j] = (float) interleaved_data[j*tw->numChannels + i] / INT16_MAX;
             }
           }
-          return (int) (samples_read/tw->numChannels);
+          return valid_len;
         }
         default: return 0;
       }
     }
     case TW_FLOAT32: {
-      size_t samples_read = 0;
       float *interleaved_data = (float *) alloca(tw->numChannels*len*sizeof(float));
-      samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
+      size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
+      int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
-          memcpy(data, interleaved_data, tw->numChannels*len*sizeof(float));
-          return (int) (samples_read/tw->numChannels);
+          memcpy(data, interleaved_data, tw->numChannels*valid_len*sizeof(float));
+          return valid_len;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = i; j < len * tw->numChannels; j += tw->numChannels, ++pos) {
+            for (int j = i; j < valid_len * tw->numChannels; j += tw->numChannels, ++pos) {
               ((float *) data)[pos] = interleaved_data[j];
             }
           }
-          return (int) (samples_read/tw->numChannels);
+          return valid_len;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = 0; j < len; j++, ++pos) {
+            for (int j = 0; j < valid_len; j++, ++pos) {
               ((float **) data)[i][j] = interleaved_data[j*tw->numChannels + i];
             }
           }
-          return (int) (samples_read/tw->numChannels);
+          return valid_len;
         }
         default: return 0;
       }
