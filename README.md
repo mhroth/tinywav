@@ -69,7 +69,7 @@ tinywav_close_read(&tw);
 TinyWav is published under the [ISC license](http://opensource.org/licenses/ISC). Please see the `LICENSE` file included in this repository, also reproduced below. In short, you are welcome to use this code for any purpose, including commercial and closed-source use.
 
 ```
-Copyright (c) 2015-2017, Martin Roth <mhroth@gmail.com>
+Copyright (c) 2015-2022, Martin Roth <mhroth@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
