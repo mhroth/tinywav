@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2022, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,28 +16,44 @@
 
 #include "tinywav.h"
 
+#include <assert.h>
+
 #define NUM_CHANNELS 1
 #define SAMPLE_RATE 48000
 #define BLOCK_SIZE 512
-#define NUM_ITERATIONS 3
 
 int main(int argc, char *argv[]) {
+  char* outputPath = "output.wav";
+  
   if (argc < 2) return -1;
-  const char *outputPath = argv[1];
+  const char *inputPath = argv[1];
 
-  TinyWav tw;
-  tinywav_open_write(&tw, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
+  TinyWav twReader;
+  tinywav_open_read(&twReader, inputPath, TW_INLINE);
+  if (twReader.numChannels != NUM_CHANNELS || twReader.h.SampleRate != SAMPLE_RATE) {
+      printf("Supplied test wav has wrong format - should be [%d]channels, fs=[%d]\n", NUM_CHANNELS, SAMPLE_RATE);
+      return -1;
+  }
+  
+  TinyWav twWriter;
+  tinywav_open_write(&twWriter, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
 
-  for (int i = 0; i < NUM_ITERATIONS; i++) {
-    float buffer[BLOCK_SIZE];
-    for (int j = 0; j < BLOCK_SIZE; j++) {
-      buffer[j] = j / ((float) BLOCK_SIZE);
-    }
+  int totalNumSamples = twReader.numFramesInHeader;
+  int samplesProcessed = 0;
+  while (samplesProcessed < totalNumSamples) {
+    float buffer[NUM_CHANNELS * BLOCK_SIZE];
+    
+    int samplesRead = tinywav_read_f(&twReader, buffer, BLOCK_SIZE);
+    assert(samplesRead > 0 && " Could not read from file!");
+    
+    int samplesWritten = tinywav_write_f(&twWriter, buffer, samplesRead);
+    assert(samplesWritten > 0 && "Could not write to file!");
 
-    tinywav_write_f(&tw, buffer, BLOCK_SIZE);
+    samplesProcessed += samplesRead * NUM_CHANNELS;
   }
 
-  tinywav_close_write(&tw);
+  tinywav_close_read(&twReader);
+  tinywav_close_write(&twWriter);
 
   return 0;
 }
