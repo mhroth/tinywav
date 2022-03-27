@@ -43,18 +43,18 @@ tinywav_close_write(&tw);
 TinyWav tw;
 tinywav_open_read(&tw, 
 	"path/to/input.wav",
-	TW_SPLIT // the samples will be read into a split buffer
+	TW_SPLIT // the samples will be delivered by the read function in split format
 );
 
 for (int i = 0; i < 100; i++) {
   // samples are always provided in float32 format, 
   // regardless of file sample format
-  float samples[NUM_CHANNELS][BLOCK_SIZE];
+  float samples[NUM_CHANNELS * BLOCK_SIZE];
   
   // Split buffer requires pointers to channel buffers
   float* samplePtrs[[NUM_CHANNELS];
   for (int j = 0; j < NUM_CHANNELS; ++j) {
-    samplePtrs[j] = samples[j];
+    samplePtrs[j] = samples + j*BLOCK_SIZE;
   }
 
   tinywav_read_f(&tw, samplePtrs, BLOCK_SIZE);
