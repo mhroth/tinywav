@@ -52,7 +52,7 @@ for (int i = 0; i < 100; i++) {
   float samples[NUM_CHANNELS * BLOCK_SIZE];
   
   // Split buffer requires pointers to channel buffers
-  float* samplePtrs[[NUM_CHANNELS];
+  float* samplePtrs[NUM_CHANNELS];
   for (int j = 0; j < NUM_CHANNELS; ++j) {
     samplePtrs[j] = samples + j*BLOCK_SIZE;
   }
