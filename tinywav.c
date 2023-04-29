@@ -33,10 +33,10 @@ int tinywav_open_write(TinyWav *tw,
     TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
     const char *path) {
 #if _WIN32
-  errno_t err = fopen_s(&tw->f, path, "w");
+  errno_t err = fopen_s(&tw->f, path, "wb");
   assert(err == 0);
 #else
-  tw->f = fopen(path, "w");
+  tw->f = fopen(path, "wb");
 #endif
   assert(tw->f != NULL);
   tw->numChannels = numChannels;
