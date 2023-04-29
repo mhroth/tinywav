@@ -184,11 +184,8 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
-          const float *const x = (const float *const) f;
-          for (int i = 0; i < tw->numChannels*len; ++i) {
-            z[i] = (int16_t) (x[i] * (float) INT16_MAX);
-          }
-          break;
+          tw->totalFramesReadWritten += len;
+          return (int) fwrite(f, sizeof(int16_t), tw->numChannels*len, tw->f);
         }
         case TW_INLINE: {
           const float *const x = (const float *const) f;
