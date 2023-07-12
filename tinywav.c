@@ -24,9 +24,28 @@
 #pragma comment(lib, "Ws2_32.lib")
 #else
 #include <alloca.h>
-#include <netinet/in.h>
+#ifndef PICO_BUILD
+ #include <netinet/in.h>
+#else
+ // we are testing this on bare metal raspberry pi pico
+ // and it has a different location for the htonl() function
+ // there may be other differences on other platforms that 
+ // are not generic linux
+ #include "lwip/inet.h"
+#endif
 #endif
 #include "tinywav.h"
+
+// this is to redirect standard file i/o calls for file to alternative
+// posix file i/o implentation for FreeRTOS-Plus-FAT
+#ifdef LIB_FREERTOS_KERNEL
+#define fopen(x,y) ff_fopen(x,y)
+#define fread(x,y,z,w) ff_fread(x,y,z,w)
+#define fwrite(x,y,z,w) ff_fwrite(x,y,z,w)
+#define fclose(x) ff_fclose(x)
+#define fseek(x,y,z) ff_fseek(x,y,z)
+#define ftell(x) ff_ftell(x)
+#endif
 
 int tinywav_open_write(TinyWav *tw,
     int16_t numChannels, int32_t samplerate,
@@ -69,24 +88,40 @@ int tinywav_open_write(TinyWav *tw,
 
 int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt) {
   tw->f = fopen(path, "rb");
-  assert(tw->f != NULL);
+  if(tw->f == NULL) {
+    return -1;
+  }
+
   size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
-  assert(ret > 0);
-  assert(tw->h.ChunkID == htonl(0x52494646));        // "RIFF"
-  assert(tw->h.Format == htonl(0x57415645));         // "WAVE"
-  assert(tw->h.Subchunk1ID == htonl(0x666d7420));    // "fmt "
-  
+  if (ret <= 0 || tw->h.ChunkID != htonl(0x52494646) || tw->h.Format != htonl(0x57415645) || tw->h.Subchunk1ID != htonl(0x666d7420) ) {
+      //check for these
+      //htonl(0x52494646)) ->  "RIFF" 
+      //htonl(0x57415645)) ->  "WAVE"
+      //htonl(0x666d7420)) ->  "fmt "
+    tinywav_close_read(tw);
+    return -1;
+  }   
   // skip over any other chunks before the "data" chunk
   bool additionalHeaderDataPresent = false;
+   
   while (tw->h.Subchunk2ID != htonl(0x64617461)) {   // "data"
-    fseek(tw->f, 4, SEEK_CUR);
-    fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
+      // the beginning of the next chunk is the current potition plus the chunk size at this position 
+      if (fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR) < 0) {
+        tinywav_close_read(tw);
+        return -1;
+    }
+    if (fread(&tw->h.Subchunk2ID, 4, 1, tw->f) <= 0) {
+        tinywav_close_read(tw);
+        return -1;
+    }    
     additionalHeaderDataPresent = true;
   }
-  assert(tw->h.Subchunk2ID == htonl(0x64617461));    // "data"
   if (additionalHeaderDataPresent) {
     // read the value of Subchunk2Size, the one populated when reading 'TinyWavHeader' structure is wrong
-    fread(&tw->h.Subchunk2Size, 4, 1, tw->f);
+    if (fread(&tw->h.Subchunk2Size, 4, 1, tw->f) <= 0) {
+        tinywav_close_read(tw);
+        return -1;
+    }
   }
     
   tw->numChannels = tw->h.NumChannels;
