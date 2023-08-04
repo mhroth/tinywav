@@ -74,7 +74,13 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   assert(ret > 0);
   assert(tw->h.ChunkID == htonl(0x52494646));        // "RIFF"
   assert(tw->h.Format == htonl(0x57415645));         // "WAVE"
-  assert(tw->h.Subchunk1ID == htonl(0x666d7420));    // "fmt "
+  if(tw->h.Subchunk1ID != htonl(0x666d7420)) {     // "fmt "
+        if (tw->h.Subchunk1ID == htonl(0x4a554e4b)) {  // JUNK
+            fseek(tw->f, tw->h.Subchunk1Size + 20, SEEK_SET);
+            fread(&(tw->h.Subchunk1ID), sizeof(TinyWavHeader) - 20, 1, tw->f);
+            assert(tw->h.Subchunk1ID == htonl(0x666d7420));
+        }
+  }
   
   // skip over any other chunks before the "data" chunk
   bool additionalHeaderDataPresent = false;
