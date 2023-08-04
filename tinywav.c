@@ -77,7 +77,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   if(tw->h.Subchunk1ID != htonl(0x666d7420)) {     // "fmt "
         if (tw->h.Subchunk1ID == htonl(0x4a554e4b)) {  // JUNK
             fseek(tw->f, tw->h.Subchunk1Size + 20, SEEK_SET);
-            fread(&(tw->h.Subchunk1ID), sizeof(TinyWavHeader) - 20, 1, tw->f);
+            fread(&(tw->h.Subchunk1ID), sizeof(TinyWavHeader) - 14, 1, tw->f);
             assert(tw->h.Subchunk1ID == htonl(0x666d7420));
         }
   }
