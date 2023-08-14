@@ -10,7 +10,7 @@ A minimal C library for reading and writing (32-bit float or 16-bit int) WAV aud
 #define NUM_CHANNELS 1
 #define SAMPLE_RATE 48000
 
-tinywav tw;
+TinyWav tw;
 tinywav_open_write(&tw,
     NUM_CHANNELS,
     SAMPLE_RATE,
