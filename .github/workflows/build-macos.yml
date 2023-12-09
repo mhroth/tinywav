@@ -34,4 +34,4 @@ jobs:
       working-directory: build
       run: |
         cmake --build . --parallel 2
-        ctest -C ${{ matrix.build_type }} -L HyperBufferTest -j 2
+        ctest -C ${{ matrix.build_type }} -L TinywavTest -j 2

@@ -1,4 +1,4 @@
-name: Build & Test HyperBuffer
+name: Build & Test Tinywav
 on:
   push:
     branches:
