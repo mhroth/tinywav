@@ -155,11 +155,13 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_open_read(NULL, NULL, channelFormat) != 0);
     REQUIRE(tinywav_open_read(NULL, "bogus.wav", channelFormat) != 0);
     REQUIRE(tinywav_open_read(&tw, "bogus.wav", channelFormat) != 0);
+    tinywav_close_read(&tw);
     
     REQUIRE(tinywav_open_write(NULL, -1, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
     REQUIRE(tinywav_open_write(&tw, -1, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
     REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
     REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, "bogus.wav") != 0);
+    tinywav_close_write(&tw);
   }
   
   SECTION("Test _write_f") {
@@ -173,6 +175,8 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_write_f(&tw, buffer, 0) == 0);
     REQUIRE(tinywav_write_f(&tw, buffer, 16) == 16);
     REQUIRE(tinywav_write_f(&tw, buffer, 23) == 23);
+    
+    tinywav_close_write(&tw);
   }
   
   SECTION("Test _read_f") {
@@ -201,6 +205,8 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_read_f(&tw, buffer, numSamples-16-1) == numSamples-16-1); // leave one sample unread
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 1); // last sample
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 0); // no more data available
+    
+    tinywav_close_read(&tw);
   }
   
 }
