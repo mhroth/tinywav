@@ -1,14 +1,20 @@
 # TinyWav
 
-A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files.
+A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files. Designed for maximum portability.
+
+* Tinywav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
+* Tinywav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
+* Tinywav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows.
 
 ## Code Example
 ### Writing
-```C
+
+```c
 #include "tinywav.h"
 
 #define NUM_CHANNELS 1
 #define SAMPLE_RATE 48000
+#define BLOCK_SIZE 480
 
 TinyWav tw;
 tinywav_open_write(&tw,
@@ -21,10 +27,11 @@ tinywav_open_write(&tw,
 );
 
 for (int i = 0; i < 100; i++) {
-  // samples are always expected in float32 format, 
+  // NOTE: samples are always expected in float32 format, 
   // regardless of file sample format
-  float samples[480 * NUM_CHANNELS];
-  tinywav_write_f(&tw, samples, sizeof(samples));
+
+  float samples[BLOCK_SIZE * NUM_CHANNELS];
+  tinywav_write_f(&tw, samples, BLOCK_SIZE);
   
   ...
 }
@@ -33,7 +40,7 @@ tinywav_close_write(&tw);
 ```
 
 ### Reading
-```C
+```c
 #include "tinywav.h"
 
 #define NUM_CHANNELS 2
@@ -69,7 +76,7 @@ tinywav_close_read(&tw);
 TinyWav is published under the [ISC license](http://opensource.org/licenses/ISC). Please see the `LICENSE` file included in this repository, also reproduced below. In short, you are welcome to use this code for any purpose, including commercial and closed-source use.
 
 ```
-Copyright (c) 2015-2022, Martin Roth <mhroth@gmail.com>
+Copyright (c) 2015-2023, Martin Roth <mhroth@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above

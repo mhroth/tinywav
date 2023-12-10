@@ -86,7 +86,7 @@ int tinywav_open_write(TinyWav *tw,
  * Open a file for reading.
  *
  * @param path     The path of the file to read.
- * @param chanFmt  The channel format (how the channel data is layed out in memory) when read.
+ * @param chanFmt  The desired channel format (how the channel data is layed out in memory) when read.
  *
  * @return  The error code. Zero if no error.
  */
@@ -98,7 +98,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
  * @param tw   The TinyWav structure which has already been prepared.
  * @param data  A pointer to the data structure to read to. This data is expected to have the
  *              correct memory layout to match the specifications given in tinywav_open_read().
- * @param len   The number of frames to read.
+ * @param len   The number of frames (samples per channel) to read.
  *
  * @return The number of frames (samples per channel) read from file.
  */
@@ -109,10 +109,11 @@ void tinywav_close_read(TinyWav *tw);
 
 /**
  * Write sample data to file.
+ * @note Samples are always expected in float32 format, regardless of file sample format
  *
  * @param tw   The TinyWav structure which has already been prepared.
  * @param f    A pointer to the sample data to write.
- * @param len  The number of frames to write.
+ * @param len  The number of frames (samples per channel) to write.
  *
  * @return The number of frames (samples per channel) written to file.
  */
