@@ -10,6 +10,11 @@
 
 #include <catch2/catch.hpp>
 
+// classic preprocessor hack to stringify -- double expansion is required
+// https://gcc.gnu.org/onlinedocs/gcc-4.8.5/cpp/Stringification.html
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 namespace TestCommon
 {
 
