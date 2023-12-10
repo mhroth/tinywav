@@ -25,6 +25,10 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 
   const char* testFile = "testFile.wav";
 
+  if (TestCommon::fileExists(testFile)) {
+      REQUIRE(remove(testFile) == 0);
+  }
+
   TinyWavSampleFormat sampleFormat = GENERATE(TW_FLOAT32, TW_INT16);
   TinyWavChannelFormat channelFormatW = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
   TinyWavChannelFormat channelFormatR = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
@@ -143,6 +147,10 @@ TEST_CASE("Tinywav - Test Error Behaviour")
   TinyWavChannelFormat channelFormat = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
   TinyWav tw;
   
+  if (TestCommon::fileExists("bogus.wav")) {
+    REQUIRE(remove("bogus.wav") == 0);
+  }
+  
   SECTION("Test _open_ functions") {
     REQUIRE(tinywav_open_read(NULL, NULL, channelFormat) != 0);
     REQUIRE(tinywav_open_read(NULL, "bogus.wav", channelFormat) != 0);
@@ -166,7 +174,9 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_write_f(&tw, buffer, 16) == 16);
     REQUIRE(tinywav_write_f(&tw, buffer, 23) == 23);
   
-    REQUIRE(remove("bogus.wav") == 0);
+    if (TestCommon::fileExists("bogus.wav")) {
+        REQUIRE(remove("bogus.wav") == 0);
+    }
   }
   
   SECTION("Test _read_f") {
@@ -196,7 +206,9 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 1); // last sample
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 0); // no more data available
     
-    REQUIRE(remove("bogus.wav") == 0);
+    if (TestCommon::fileExists("bogus.wav")) {
+        REQUIRE(remove("bogus.wav") == 0);
+    }
   }
   
 }
