@@ -21,18 +21,20 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   constexpr int blockSize = 64; // number of samples to read/write at a time
   
   const int frameSize = blockSize * numChannels;
-  const int numBlocks = std::ceil(static_cast<float>(numSamples/blockSize));
   
   const char* testFile = "testFile.wav";
-  
-  const std::vector<float> samples = TestCommon::createRandomVector(numSamples*numChannels);
-  TinyWav tw;
 
-  TinyWavSampleFormat sampleFormat = GENERATE(TW_FLOAT32);//, TW_INT16);
+  TinyWavSampleFormat sampleFormat = GENERATE(TW_FLOAT32, TW_INT16);
   TinyWavChannelFormat channelFormatW = GENERATE(TW_INTERLEAVED, TW_INLINE);//, TW_SPLIT);
   TinyWavChannelFormat channelFormatR = GENERATE(TW_INTERLEAVED, TW_INLINE);//, TW_SPLIT);
-
+  
+  const int numBlocks = std::ceil(static_cast<float>(numSamples/blockSize));
   const auto bytesPerSample = static_cast<int>(sampleFormat);
+  
+  // Test data
+  const std::vector<float> samples = TestCommon::createRandomVector(numSamples*numChannels);
+
+  TinyWav tw;
   
   REQUIRE(tinywav_open_write(&tw, numChannels, sampleRate, sampleFormat, channelFormatW, testFile) == 0);
   REQUIRE(tinywav_isOpen(&tw));
@@ -46,7 +48,7 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   int frameCount = 0;
   for (int i = 0; i < numBlocks; i++) {
     std::vector<float> writeBuffer(samples.data() + i*frameSize, samples.data() + (i+1)*frameSize);
-    
+
     REQUIRE(tinywav_write_f(&tw, writeBuffer.data(), blockSize) == blockSize);
     frameCount += blockSize;
     REQUIRE(tw.totalFramesReadWritten == frameCount);
@@ -108,7 +110,7 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   
   // Verify content
   REQUIRE(samples.size() == readSamples.size());
-  if (channelFormatR == channelFormatW) { // only the simple case; for now
+  if (sampleFormat == TW_FLOAT32 && channelFormatR == channelFormatW) { // only the simple case; for now
     REQUIRE(samples == readSamples);
   }
 }
