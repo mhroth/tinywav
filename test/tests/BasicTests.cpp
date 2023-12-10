@@ -148,7 +148,7 @@ TEST_CASE("Tinywav - Test Error Behaviour")
   TinyWav tw;
   
   if (TestCommon::fileExists("bogus.wav")) {
-    REQUIRE(remove("bogus.wav") == 0);
+    REQUIRE(std::remove("bogus.wav") == 0);
   }
   
   SECTION("Test _open_ functions") {
@@ -173,10 +173,6 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_write_f(&tw, buffer, 0) == 0);
     REQUIRE(tinywav_write_f(&tw, buffer, 16) == 16);
     REQUIRE(tinywav_write_f(&tw, buffer, 23) == 23);
-  
-    if (TestCommon::fileExists("bogus.wav")) {
-        REQUIRE(remove("bogus.wav") == 0);
-    }
   }
   
   SECTION("Test _read_f") {
@@ -205,10 +201,6 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_read_f(&tw, buffer, numSamples-16-1) == numSamples-16-1); // leave one sample unread
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 1); // last sample
     REQUIRE(tinywav_read_f(&tw, buffer, 1) == 0); // no more data available
-    
-    if (TestCommon::fileExists("bogus.wav")) {
-        REQUIRE(remove("bogus.wav") == 0);
-    }
   }
   
 }
