@@ -17,7 +17,7 @@
 
 
 #include <assert.h>
-#include <string.h>
+#include <string.h> // for memcpy
 #if _WIN32
 #include <winsock.h>
 #include <malloc.h> // for alloca

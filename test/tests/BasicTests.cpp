@@ -18,8 +18,8 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 {
   const int numChannels = GENERATE(1, 2, 8);
   const int sampleRate = GENERATE(44100, 48000);
-  constexpr int numSamples = 32; // 0.1 seconds @ 48k
-  constexpr int blockSize = 16; // number of samples to read/write at a time
+  constexpr int numSamples = 4800; // 0.1 seconds @ 48k
+  constexpr int blockSize = 64; // number of samples to read/write at a time
 
   const int frameSize = blockSize * numChannels;
 
@@ -29,7 +29,7 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   TinyWavChannelFormat channelFormatW = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
   TinyWavChannelFormat channelFormatR = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
 
-  const int numBlocks = std::ceil(static_cast<float>(numSamples/blockSize));
+  const int numBlocks = static_cast<int>(std::ceil(static_cast<float>(numSamples)/blockSize));
   const auto bytesPerSample = static_cast<int>(sampleFormat);
 
   // Test data
