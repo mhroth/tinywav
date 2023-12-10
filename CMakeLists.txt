@@ -21,7 +21,7 @@ file(GLOB main_file "test/main.cpp" "test/TestCommon.hpp")
 list(APPEND source_test ${main_file})
 add_executable(${TEST_NAME} ${source_test})
 target_link_libraries(${TEST_NAME} PUBLIC ${PROJECT_NAME})
-target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR} "${CMAKE_CURRENT_LIST_DIR}/test")
 
 # create source groups
 source_group("" FILES ${source_files})

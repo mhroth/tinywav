@@ -3,27 +3,44 @@
 
 #include "tinywav.h"
 
-#define NUM_CHANNELS 1
-#define SAMPLE_RATE 48000
+#include "TestCommon.hpp"
 
-TEST_CASE("Tinywav - Basic Tests")
+TEST_CASE("Tinywav - Test Basic Reading/Writing TW_INTERLEAVED")
 {
+  constexpr int numChannels = 2;
+  constexpr int sampleRate = 48000;
+  constexpr int numSamples = 4800; // 0.1 seconds
+  constexpr int blockSize = 64; // number of samples to read/write at a time
+  
+  constexpr int frameSize = blockSize * numChannels;
+  constexpr int numBlocks = static_cast<float>(numSamples/blockSize);
+  
+  const char* testFile = "testFile.wav";
+  
+  std::vector<float> samples = TestCommon::createRandomVector(numSamples*numChannels);
   TinyWav tw;
-  tinywav_open_write(&tw,
-      NUM_CHANNELS,
-      SAMPLE_RATE,
-      TW_FLOAT32, // the output samples will be 32-bit floats. TW_INT16 is also supported
-      TW_INLINE,  // the samples to be written will be assumed to be inlined in a single buffer.
-                  // Other options include TW_INTERLEAVED and TW_SPLIT
-      "output.wav" // the output path
-  );
 
-  for (int i = 0; i < 100; i++) {
-    // samples are always expected in float32 format,
-    // regardless of file sample format
-    float samples[480 * NUM_CHANNELS];
-    tinywav_write_f(&tw, samples, sizeof(samples));
+  SECTION("Interleaved") {
+    tinywav_open_write(&tw, numChannels, sampleRate, TW_FLOAT32, TW_INTERLEAVED, testFile);
+    
+    for (int i = 0; i < numBlocks; i++) {
+      std::vector<float> writeBuffer(samples.data() + i*frameSize, samples.data() + (i+1)*frameSize);
+      
+      REQUIRE(tinywav_write_f(&tw, writeBuffer.data(), blockSize) == blockSize);
+    }
+    tinywav_close_write(&tw);
   }
-
-  tinywav_close_write(&tw);
+  
+  SECTION("Inline") {
+    tinywav_open_write(&tw, numChannels, sampleRate, TW_FLOAT32, TW_INLINE, testFile);
+    
+    for (int i = 0; i < numBlocks; i++) {
+      std::vector<float> writeBuffer(samples.data() + i*frameSize, samples.data() + (i+1)*frameSize);
+      
+      REQUIRE(tinywav_write_f(&tw, writeBuffer.data(), blockSize) == blockSize);
+    }
+    
+    tinywav_close_write(&tw);
+  }
+  
 }
