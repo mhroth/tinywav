@@ -211,9 +211,10 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesReadWritten += len;
       size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
-      return (int) samples_written / tw->numChannels;
+      size_t frames_written = samples_written / tw->numChannels;
+      tw->totalFramesReadWritten += frames_written;
+      return (int) frames_written;
     }
     case TW_FLOAT32: {
       float *z = (float *) alloca(tw->numChannels*len*sizeof(float));
@@ -246,9 +247,10 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesReadWritten += len;
       size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
-      return (int) samples_written / tw->numChannels;
+      size_t frames_written = samples_written / tw->numChannels;
+      tw->totalFramesReadWritten += frames_written;
+      return (int) frames_written;
     }
     default: return 0;
   }
