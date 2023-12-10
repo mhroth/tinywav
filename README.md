@@ -1,10 +1,17 @@
 # TinyWav
 
+![](https://img.shields.io/github/license/mhroth/tinywav)
+![](https://img.shields.io/badge/C-C99_std-blue.svg?style=flat&logo=c)
+![](https://img.shields.io/badge/dependencies-<stdio.h>-blue)
+![](https://img.shields.io/badge/external dependencies-none-blue)
+
 A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files. Designed for maximum portability.
 
 * Tinywav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
 * Tinywav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
 * Tinywav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows.
+
+[![Build & Test](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml)
 
 ## Code Example
 ### Writing
