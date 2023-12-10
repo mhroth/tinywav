@@ -1,8 +1,8 @@
 
 #include <catch2/catch.hpp>
-
 #include "tinywav.h"
 
+#include <cstring> // for memset
 #include "TestCommon.hpp"
 
 // for hton
