@@ -12,6 +12,35 @@
 
 namespace TestCommon
 {
+
+/** [ABCABCABC] --> [AAABBBCCC] */
+static std::vector<float> deinterleave(std::vector<float> interleavedVector, int numChannels)
+{
+    std::vector<float> deinterleaved(interleavedVector.size());
+    const int numSamples = (int)interleavedVector.size() / numChannels;
+    assert(numSamples != 0);
+    for (int i=0; i<numSamples; ++i) {
+        for (int c=0; c<numChannels; ++c) {
+            deinterleaved[c*numSamples+i] = interleavedVector[i*numChannels+c];
+        }
+    }
+    return deinterleaved;
+}
+
+/** [ABCABCABC] --> [AAABBBCCC] */
+static std::vector<float> interleave(std::vector<float> inlineVector, int numChannels)
+{
+    std::vector<float> interleaved(inlineVector.size());
+    const int numSamples = (int)inlineVector.size() / numChannels;
+    assert(numSamples != 0);
+    for (int i=0; i<numSamples; ++i) {
+        for (int c=0; c<numChannels; ++c) {
+            interleaved[i*numChannels+c] = inlineVector[c*numSamples+i];
+        }
+    }
+    return interleaved;
+}
+
 using stl_size_type = typename std::vector<float>::size_type;
 constexpr stl_size_type STL(int i) { return static_cast<stl_size_type>(i); }
 
