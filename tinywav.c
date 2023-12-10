@@ -91,6 +91,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   // TODO: portability: do not use sizeof(TinyWavHeader) -- struct packing! Read bytes individually
   size_t read_elements = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
   if (read_elements < 1) {
+    tinywav_close_read(tw);
     return -1;
   }
   
@@ -99,6 +100,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     //htonl(0x52494646) "RIFF"
     //htonl(0x57415645) "WAVE"
     //htonl(0x666d7420) "fmt "
+    tinywav_close_read(tw);
     return -1;
   }
   
@@ -110,6 +112,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     additionalHeaderDataPresent = true;
   }
   if (tw->h.Subchunk2ID != htonl(0x64617461)) {  // "data"
+    tinywav_close_read(tw);
     return -1;
   }
   
