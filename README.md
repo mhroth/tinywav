@@ -3,7 +3,7 @@
 ![](https://img.shields.io/github/license/mhroth/tinywav)
 ![](https://img.shields.io/badge/C-C99_std-blue.svg?style=flat&logo=c)
 ![](https://img.shields.io/badge/dependencies-<stdio.h>-blue)
-![](https://img.shields.io/badge/external dependencies-none-blue)
+![](https://img.shields.io/badge/external_dependencies-none-blue)
 
 A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files. Designed for maximum portability.
 
