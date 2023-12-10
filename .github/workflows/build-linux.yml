@@ -1,0 +1,49 @@
+name: Sidelobe Build Matrix Linux
+on:
+  workflow_call:
+jobs:
+  build:
+    name: Linux, ${{matrix.cxx}}, C++${{matrix.std}}, ${{matrix.build_type}}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx:
+          - g++-7
+          - g++-11
+        build_type: [Debug, Release]
+        std: [14]
+        include:
+          - cxx: g++-7
+            cc: gcc-7
+            other_pkgs: g++-7 gcc-7
+          - cxx: g++-11
+            cc: gcc-11
+            other_pkgs: g++-11 gcc-11
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - name: Install Toolchain
+      run: sudo apt-get install -y ${{matrix.other_pkgs}}
+    - name: Setup & Cmake
+      env:
+        CC: ${{matrix.cc}}
+        CXX: ${{matrix.cxx}}
+        CXXFLAGS: ${{matrix.cxxflags}}
+      # Note: $GITHUB_WORKSPACE is distinct from ${{runner.workspace}}.
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+              -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              ..
+        
+    - name: Build & Run Tests
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      working-directory: build
+      run: |
+        cmake --build . --parallel 2
+        ctest -C ${{ matrix.build_type }} -L TinywavTest -j 2

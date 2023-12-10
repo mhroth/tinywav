@@ -17,10 +17,10 @@
 
 
 #include <assert.h>
-#include <string.h>
+#include <string.h> // for memcpy
 #if _WIN32
 #include <winsock.h>
-#include <malloc.h>
+#include <malloc.h> // for alloca
 #pragma comment(lib, "Ws2_32.lib")
 #else
 #include <alloca.h>
@@ -70,7 +70,7 @@ int tinywav_open_write(TinyWav *tw,
 int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt) {
   tw->f = fopen(path, "rb");
   assert(tw->f != NULL);
-  size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
+  size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f); // TODO: portability: do not use sizeof(TinyWavHeader) -- struct packing! Read bytes individually
   assert(ret > 0);
   assert(tw->h.ChunkID == htonl(0x52494646));        // "RIFF"
   assert(tw->h.Format == htonl(0x57415645));         // "WAVE"
@@ -112,6 +112,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_INT16: {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
+      tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
@@ -142,6 +143,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_FLOAT32: {
       float *interleaved_data = (float *) alloca(tw->numChannels*len*sizeof(float));
       size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
+      tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
@@ -169,8 +171,6 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     }
     default: return 0;
   }
-
-  return len;
 }
 
 void tinywav_close_read(TinyWav *tw) {
@@ -184,8 +184,11 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
-          tw->totalFramesReadWritten += len;
-          return (int) fwrite(f, sizeof(int16_t), tw->numChannels*len, tw->f);
+          const float *const x = (const float *const) f;
+          for (int i = 0; i < tw->numChannels*len; ++i) {
+            z[i] = (int16_t) (x[i] * (float) INT16_MAX);
+          }
+          break;
         }
         case TW_INLINE: {
           const float *const x = (const float *const) f;
@@ -208,16 +211,20 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesReadWritten += len;
       size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
-      return (int) samples_written / tw->numChannels;
+      size_t frames_written = samples_written / tw->numChannels;
+      tw->totalFramesReadWritten += frames_written;
+      return (int) frames_written;
     }
     case TW_FLOAT32: {
       float *z = (float *) alloca(tw->numChannels*len*sizeof(float));
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
-          tw->totalFramesReadWritten += len;
-          return (int) fwrite(f, sizeof(float), tw->numChannels*len, tw->f);
+          const float *const x = (const float *const) f;
+          for (int i = 0; i < tw->numChannels*len; ++i) {
+            z[i] = x[i];
+          }
+          break;
         }
         case TW_INLINE: {
           const float *const x = (const float *const) f;
@@ -240,9 +247,10 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: return 0;
       }
 
-      tw->totalFramesReadWritten += len;
       size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
-      return (int) samples_written / tw->numChannels;
+      size_t frames_written = samples_written / tw->numChannels;
+      tw->totalFramesReadWritten += frames_written;
+      return (int) frames_written;
     }
     default: return 0;
   }
@@ -251,6 +259,9 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
 void tinywav_close_write(TinyWav *tw) {
   uint32_t data_len = tw->totalFramesReadWritten * tw->numChannels * tw->sampFmt;
 
+  // TODO: replace or at least comment offsets
+  // e.g. https://stackoverflow.com/questions/50539392/chunksize-in-wav-files
+  
   // set length of data
   fseek(tw->f, 4, SEEK_SET);
   uint32_t chunkSize_len = 36 + data_len;

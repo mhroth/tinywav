@@ -1,0 +1,19 @@
+name: Build & Test Tinywav
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    
+jobs: 
+  call-build-linux:
+    uses: ./.github/workflows/build-linux.yml
+  call-build-macos:
+    if: ${{ always() }}
+    uses: ./.github/workflows/build-macos.yml
+  call-build-windows:
+    if: ${{ always() }}
+    uses: ./.github/workflows/build-windows.yml
