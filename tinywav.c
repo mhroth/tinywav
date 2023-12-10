@@ -14,9 +14,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-
-
-#include <assert.h>
 #include <string.h> // for memcpy
 #if _WIN32
 #include <winsock.h>
@@ -28,17 +25,20 @@
 #endif
 #include "tinywav.h"
 
-int tinywav_open_write(TinyWav *tw,
-    int16_t numChannels, int32_t samplerate,
-    TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
-    const char *path) {
+int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, TinyWavSampleFormat sampFmt,
+                       TinyWavChannelFormat chanFmt, const char *path) {
+  
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "wb");
-  assert(err == 0);
+  if (err != 0) { return err; }
 #else
   tw->f = fopen(path, "wb");
 #endif
-  assert(tw->f != NULL);
+  
+  if (tw->f == NULL) {
+    return -1;
+  }
+
   tw->numChannels = numChannels;
   tw->numFramesInHeader = -1; // not used for writer
   tw->totalFramesReadWritten = 0;
@@ -68,13 +68,31 @@ int tinywav_open_write(TinyWav *tw,
 }
 
 int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt) {
+  
+#if _WIN32
+  errno_t err = fopen_s(&tw->f, path, "rb");
+  if (err != 0) { return err; }
+#else
   tw->f = fopen(path, "rb");
-  assert(tw->f != NULL);
-  size_t ret = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f); // TODO: portability: do not use sizeof(TinyWavHeader) -- struct packing! Read bytes individually
-  assert(ret > 0);
-  assert(tw->h.ChunkID == htonl(0x52494646));        // "RIFF"
-  assert(tw->h.Format == htonl(0x57415645));         // "WAVE"
-  assert(tw->h.Subchunk1ID == htonl(0x666d7420));    // "fmt "
+#endif
+  
+  if (tw->f == NULL) {
+    return -1;
+  }
+  
+  // TODO: portability: do not use sizeof(TinyWavHeader) -- struct packing! Read bytes individually
+  size_t read_elements = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
+  if (read_elements < 1) {
+    return -1;
+  }
+  
+  if (tw->h.ChunkID != htonl(0x52494646) || tw->h.Format != htonl(0x57415645) || tw->h.Subchunk1ID != htonl(0x666d7420)) {
+    // TODO: read these byte-by-byte to avoid htonl dependency
+    //htonl(0x52494646) "RIFF"
+    //htonl(0x57415645) "WAVE"
+    //htonl(0x666d7420) "fmt "
+    return -1;
+  }
   
   // skip over any other chunks before the "data" chunk
   bool additionalHeaderDataPresent = false;
@@ -83,7 +101,10 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
     additionalHeaderDataPresent = true;
   }
-  assert(tw->h.Subchunk2ID == htonl(0x64617461));    // "data"
+  if (tw->h.Subchunk2ID != htonl(0x64617461)) {  // "data"
+    return -1;
+  }
+  
   if (additionalHeaderDataPresent) {
     // read the value of Subchunk2Size, the one populated when reading 'TinyWavHeader' structure is wrong
     fread(&tw->h.Subchunk2Size, 4, 1, tw->f);
@@ -113,29 +134,29 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
       tw->totalFramesReadWritten += samples_read / tw->numChannels;
-      int valid_len = (int) samples_read / tw->numChannels;
+      int frames_read = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
-          for (int pos = 0; pos < tw->numChannels * valid_len; pos++) {
+          for (int pos = 0; pos < tw->numChannels * frames_read; pos++) {
             ((float *) data)[pos] = (float) interleaved_data[pos] / INT16_MAX;
           }
-          return valid_len;
+          return frames_read;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = i; j < valid_len * tw->numChannels; j += tw->numChannels, ++pos) {
+            for (int j = i; j < frames_read * tw->numChannels; j += tw->numChannels, ++pos) {
               ((float *) data)[pos] = (float) interleaved_data[j] / INT16_MAX;
             }
           }
-          return valid_len;
+          return frames_read;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = 0; j < valid_len; j++, ++pos) {
+            for (int j = 0; j < frames_read; j++, ++pos) {
               ((float **) data)[i][j] = (float) interleaved_data[j*tw->numChannels + i] / INT16_MAX;
             }
           }
-          return valid_len;
+          return frames_read;
         }
         default: return 0;
       }
@@ -144,27 +165,27 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
       float *interleaved_data = (float *) alloca(tw->numChannels*len*sizeof(float));
       size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
       tw->totalFramesReadWritten += samples_read / tw->numChannels;
-      int valid_len = (int) samples_read / tw->numChannels;
+      int frames_read = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
-          memcpy(data, interleaved_data, tw->numChannels*valid_len*sizeof(float));
-          return valid_len;
+          memcpy(data, interleaved_data, tw->numChannels*frames_read*sizeof(float));
+          return frames_read;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = i; j < valid_len * tw->numChannels; j += tw->numChannels, ++pos) {
+            for (int j = i; j < frames_read * tw->numChannels; j += tw->numChannels, ++pos) {
               ((float *) data)[pos] = interleaved_data[j];
             }
           }
-          return valid_len;
+          return frames_read;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
-            for (int j = 0; j < valid_len; j++, ++pos) {
+            for (int j = 0; j < frames_read; j++, ++pos) {
               ((float **) data)[i][j] = interleaved_data[j*tw->numChannels + i];
             }
           }
-          return valid_len;
+          return frames_read;
         }
         default: return 0;
       }
