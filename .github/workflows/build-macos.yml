@@ -15,9 +15,10 @@ jobs:
         std: [14]
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
+        lfs: 'true'
     - name: Setup & Cmake
       env:
         CXX: ${{matrix.cxx}}
