@@ -28,6 +28,10 @@
 int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, TinyWavSampleFormat sampFmt,
                        TinyWavChannelFormat chanFmt, const char *path) {
   
+  if (tw == NULL || path == NULL || numChannels < 1 || samplerate < 1) {
+    return -1;
+  }
+  
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "wb");
   if (err != 0) { return err; }
@@ -68,6 +72,10 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
 }
 
 int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFmt) {
+  
+  if (tw == NULL || path == NULL) {
+    return -1;
+  }
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "rb");
@@ -129,6 +137,11 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
 }
 
 int tinywav_read_f(TinyWav *tw, void *data, int len) {
+  
+  if (tw == NULL || data == NULL || len < 0) {
+    return -1;
+  }
+  
   switch (tw->sampFmt) {
     case TW_INT16: {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
@@ -200,6 +213,14 @@ void tinywav_close_read(TinyWav *tw) {
 }
 
 int tinywav_write_f(TinyWav *tw, void *f, int len) {
+  
+  if (tw == NULL || f == NULL || len < 0) {
+    return -1;
+  }
+  
+  // 1. Bring samples into interleaved format
+  // 2. write to disk
+  
   switch (tw->sampFmt) {
     case TW_INT16: {
       int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
