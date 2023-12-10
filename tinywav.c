@@ -225,6 +225,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           for (int i = 0; i < tw->numChannels*len; ++i) {
             z[i] = x[i];
           }
+          break;
         }
         case TW_INLINE: {
           const float *const x = (const float *const) f;
