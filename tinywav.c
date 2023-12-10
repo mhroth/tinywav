@@ -112,6 +112,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_INT16: {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
       size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
+      tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
@@ -142,6 +143,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_FLOAT32: {
       float *interleaved_data = (float *) alloca(tw->numChannels*len*sizeof(float));
       size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
+      tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int valid_len = (int) samples_read / tw->numChannels;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
