@@ -161,7 +161,6 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_open_write(&tw, -1, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
     REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
     REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, "bogus.wav") != 0);
-    tinywav_close_write(&tw);
   }
   
   SECTION("Test _write_f") {
