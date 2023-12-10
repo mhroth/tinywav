@@ -13,19 +13,19 @@
   #include <netinet/in.h>
 #endif
 
-TEST_CASE("Tinywav - Test Basic Reading/Writing Loop")
+TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 {
   const int numChannels = GENERATE(1, 2, 8);
   const int sampleRate = GENERATE(44100, 48000);
-  constexpr int numSamples = 4800; // 0.1 seconds
+  constexpr int numSamples = 4800; // 0.1 seconds @ 48k
   constexpr int blockSize = 64; // number of samples to read/write at a time
   
   const int frameSize = blockSize * numChannels;
-  constexpr int numBlocks = static_cast<float>(numSamples/blockSize);
+  const int numBlocks = std::ceil(static_cast<float>(numSamples/blockSize));
   
   const char* testFile = "testFile.wav";
   
-  std::vector<float> samples = TestCommon::createRandomVector(numSamples*numChannels);
+  const std::vector<float> samples = TestCommon::createRandomVector(numSamples*numChannels);
   TinyWav tw;
 
   TinyWavSampleFormat sampleFormat = GENERATE(TW_FLOAT32);//, TW_INT16);
@@ -89,19 +89,28 @@ TEST_CASE("Tinywav - Test Basic Reading/Writing Loop")
   REQUIRE(tw.h.Subchunk2ID == htonl(0x64617461)); // "data"
   REQUIRE(tw.h.Subchunk2Size == frameCount * numChannels * bytesPerSample);
   
+  std::vector<float> readSamples;
   frameCount = 0;
   for (int i = 0; i < numBlocks; i++) {
-    std::vector<float> readBuffer(samples.data() + i*frameSize, samples.data() + (i+1)*frameSize);
+    std::vector<float> readBuffer(frameSize);
     
     REQUIRE(tinywav_read_f(&tw, readBuffer.data(), blockSize) == blockSize);
     frameCount += blockSize;
     REQUIRE(tw.totalFramesReadWritten == frameCount);
-    REQUIRE(tinywav_isOpen(&tw)); 
+    REQUIRE(tinywav_isOpen(&tw));
+    
+    readSamples.insert(readSamples.end(), readBuffer.begin(), readBuffer.end());
   }
   
   tinywav_close_read(&tw);
   REQUIRE(tw.f == nullptr);
   REQUIRE_FALSE(tinywav_isOpen(&tw));
+  
+  // Verify content
+  REQUIRE(samples.size() == readSamples.size());
+  if (channelFormatR == channelFormatW) { // only the simple case; for now
+    REQUIRE(samples == readSamples);
+  }
 }
 
 
