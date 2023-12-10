@@ -65,7 +65,7 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   h.Subchunk2ID = htonl(0x64617461); // "data"
   h.Subchunk2Size = 0; // fill this in on file-close
 
-  // write WAV header
+  // write WAV header TODO: verify return value
   fwrite(&h, sizeof(TinyWavHeader), 1, tw->f);
 
   return 0;
@@ -107,6 +107,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   // skip over any other chunks before the "data" chunk
   bool additionalHeaderDataPresent = false;
   while (tw->h.Subchunk2ID != htonl(0x64617461)) {   // "data"
+    // TODO: look at return values of these calls!
     fseek(tw->f, 4, SEEK_CUR);
     fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
     additionalHeaderDataPresent = true;
@@ -118,6 +119,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
   if (additionalHeaderDataPresent) {
     // read the value of Subchunk2Size, the one populated when reading 'TinyWavHeader' structure is wrong
+    // TODO: verify return value!
     fread(&tw->h.Subchunk2Size, 4, 1, tw->f);
   }
     
@@ -211,6 +213,10 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
 }
 
 void tinywav_close_read(TinyWav *tw) {
+  if (tw->f == NULL) {
+    return; // fclose(NULL) is undefined behaviour
+  }
+  
   fclose(tw->f);
   tw->f = NULL;
 }
@@ -302,12 +308,17 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
 }
 
 void tinywav_close_write(TinyWav *tw) {
+  if (tw == NULL || tw->f == NULL) {
+    return; // fclose(NULL) is undefined behaviour
+  }
+  
   uint32_t data_len = tw->totalFramesReadWritten * tw->numChannels * tw->sampFmt;
 
   // TODO: replace or at least comment offsets
   // e.g. https://stackoverflow.com/questions/50539392/chunksize-in-wav-files
   
   // set length of data
+  // TODO: check return values for fseek/fwrite!
   fseek(tw->f, 4, SEEK_SET);
   uint32_t chunkSize_len = 36 + data_len;
   fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f);
