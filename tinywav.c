@@ -180,11 +180,16 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
 
 int tinywav_read_f(TinyWav *tw, void *data, int len) {
   
-  if (tw == NULL || data == NULL || len < 0) {
+  if (tw == NULL || data == NULL || len < 0 || !tinywav_isOpen(tw)) {
     return -1;
   }
   
-  // TODO: only allow to read as much as is
+  if (tw->totalFramesReadWritten * tw->h.BlockAlign >= tw->h.Subchunk2Size) {
+    // We are past the 'data' subchunk (size as declared in header).
+    // Sometimes there are additionl chunks *after* -- ignore these.
+    return 0; // there's nothing more to read, not an error.
+  }
+  
   switch (tw->sampFmt) {
     case TW_INT16: {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
@@ -261,7 +266,7 @@ void tinywav_close_read(TinyWav *tw) {
 
 int tinywav_write_f(TinyWav *tw, void *f, int len) {
   
-  if (tw == NULL || f == NULL || len < 0) {
+  if (tw == NULL || f == NULL || len < 0 || !tinywav_isOpen(tw)) {
     return -1;
   }
   
