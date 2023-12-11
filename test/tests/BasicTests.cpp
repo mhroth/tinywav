@@ -5,15 +5,6 @@
 #include <cstring> // for memset
 #include "TestCommon.hpp"
 
-// for hton
-#if _WIN32
-  #include <winsock.h>
-  #pragma comment(lib, "Ws2_32.lib")
-#else
-  #include <netinet/in.h>
-#endif
-
-
 TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 {
   const int numChannels = GENERATE(1, 2, 8);
@@ -51,6 +42,33 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.f != nullptr);
   REQUIRE(tw.totalFramesReadWritten == 0);
   REQUIRE(tw.numFramesInHeader == -1); // not used when writing
+  
+  // verify header
+  REQUIRE(tw.h.ChunkID[0] == 'R');
+  REQUIRE(tw.h.ChunkID[1] == 'I');
+  REQUIRE(tw.h.ChunkID[2] == 'F');
+  REQUIRE(tw.h.ChunkID[3] == 'F');
+  REQUIRE(tw.h.ChunkSize == 0);
+  REQUIRE(tw.h.Format[0] == 'W');
+  REQUIRE(tw.h.Format[1] == 'A');
+  REQUIRE(tw.h.Format[2] == 'V');
+  REQUIRE(tw.h.Format[3] == 'E');
+  REQUIRE(tw.h.Subchunk1ID[0] == 'f');
+  REQUIRE(tw.h.Subchunk1ID[1] == 'm');
+  REQUIRE(tw.h.Subchunk1ID[2] == 't');
+  REQUIRE(tw.h.Subchunk1ID[3] == ' ');
+  REQUIRE(tw.h.Subchunk1Size == 16); // PCM
+  REQUIRE(tw.h.AudioFormat == (int)sampleFormat-1); // 1 PCM, 3 IEEE float
+  REQUIRE(tw.h.NumChannels == numChannels);
+  REQUIRE(tw.h.SampleRate == sampleRate);
+  REQUIRE(tw.h.ByteRate == sampleRate * numChannels * bytesPerSample);
+  REQUIRE(tw.h.BlockAlign == numChannels * bytesPerSample);
+  REQUIRE(tw.h.BitsPerSample == bytesPerSample * 8);
+  REQUIRE(tw.h.Subchunk2ID[0] == 'd');
+  REQUIRE(tw.h.Subchunk2ID[1] == 'a');
+  REQUIRE(tw.h.Subchunk2ID[2] == 't');
+  REQUIRE(tw.h.Subchunk2ID[3] == 'a');
+  REQUIRE(tw.h.Subchunk2Size == 0);
 
   int frameCount = 0;
   for (int i = 0; i < numBlocks; i++) {
@@ -75,6 +93,10 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.f == nullptr);
   REQUIRE_FALSE(tinywav_isOpen(&tw));
   REQUIRE(tw.totalFramesReadWritten == frameCount);
+  
+  int totalPayload = frameCount * numChannels * bytesPerSample;
+  REQUIRE(tw.h.ChunkSize == 36 + totalPayload);
+  REQUIRE(tw.h.Subchunk2Size == totalPayload);
 
   // Wipe struct in between (test with and without)
   if (GENERATE(true, false)) {
@@ -91,11 +113,21 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.totalFramesReadWritten == 0);
 
   // verify header
-  REQUIRE(tw.h.ChunkID == htonl(0x52494646)); // "RIFF"
-  int s = sizeof(TinyWavHeader);
-  REQUIRE(tw.h.ChunkSize == frameCount * numChannels * bytesPerSample + 36); // TODO: 36?
-  REQUIRE(tw.h.Format == htonl(0x57415645)); // "WAVE"
-  REQUIRE(tw.h.Subchunk1ID == htonl(0x666d7420)); // "fmt "
+  REQUIRE(tw.h.ChunkID[0] == 'R');
+  REQUIRE(tw.h.ChunkID[1] == 'I');
+  REQUIRE(tw.h.ChunkID[2] == 'F');
+  REQUIRE(tw.h.ChunkID[3] == 'F');
+
+  int headerSize = 4 /*WAVE*/ + 8 /*Subchunk1ID(fmt ) + SubChunkIDSize*/ + 16 /*Subchunk1*/ + 8 /*Subchunk1ID(data) + SubChunkIDSize*/;
+  REQUIRE(tw.h.ChunkSize == headerSize + frameCount * numChannels * bytesPerSample);
+  REQUIRE(tw.h.Format[0] == 'W');
+  REQUIRE(tw.h.Format[1] == 'A');
+  REQUIRE(tw.h.Format[2] == 'V');
+  REQUIRE(tw.h.Format[3] == 'E');
+  REQUIRE(tw.h.Subchunk1ID[0] == 'f');
+  REQUIRE(tw.h.Subchunk1ID[1] == 'm');
+  REQUIRE(tw.h.Subchunk1ID[2] == 't');
+  REQUIRE(tw.h.Subchunk1ID[3] == ' ');
   REQUIRE(tw.h.Subchunk1Size == 16); // PCM
   REQUIRE(tw.h.AudioFormat == (int)sampleFormat-1); // 1 PCM, 3 IEEE float
   REQUIRE(tw.h.NumChannels == numChannels);
@@ -103,7 +135,10 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.h.ByteRate == sampleRate * numChannels * bytesPerSample);
   REQUIRE(tw.h.BlockAlign == numChannels * bytesPerSample);
   REQUIRE(tw.h.BitsPerSample == bytesPerSample * 8);
-  REQUIRE(tw.h.Subchunk2ID == htonl(0x64617461)); // "data"
+  REQUIRE(tw.h.Subchunk2ID[0] == 'd');
+  REQUIRE(tw.h.Subchunk2ID[1] == 'a');
+  REQUIRE(tw.h.Subchunk2ID[2] == 't');
+  REQUIRE(tw.h.Subchunk2ID[3] == 'a');
   REQUIRE(tw.h.Subchunk2Size == frameCount * numChannels * bytesPerSample);
 
   std::vector<float> readSamples;
