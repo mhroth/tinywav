@@ -72,7 +72,10 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   h.ByteRate = samplerate * numChannels * tw->sampFmt;
   h.BlockAlign = numChannels * tw->sampFmt;
   h.BitsPerSample = 8*tw->sampFmt;
-  h.Subchunk2ID = htonl(0x64617461); // "data"
+  h.Subchunk2ID[0] = 'd';
+  h.Subchunk2ID[1] = 'a';
+  h.Subchunk2ID[2] = 't';
+  h.Subchunk2ID[3] = 'a';
   h.Subchunk2Size = 0; // fill this in on file-close
 
   // write WAV header TODO: verify return value
@@ -99,39 +102,62 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     return -1;
   }
   
-  // TODO: portability: do not use sizeof(TinyWavHeader) -- struct packing! Read bytes individually
-  size_t read_elements = fread(&tw->h, sizeof(TinyWavHeader), 1, tw->f);
-  if (read_elements < 1) {
+  // MARK: Parse WAV header
+  
+  /**
+   * NOTE: We do this byte-by-byte to avoid dependencies (htonl() et al.) and because struct padding depends on
+   * specific compiler implementation ('slurping' directly into the header struct is therefore dangerous).
+   *
+   * The RIFF format specifies little-endian order for the data stream.
+   */
+  size_t elementCount;
+  
+  // RIFF Chunk
+  elementCount  = fread(tw->h.ChunkID, sizeof(u_char), 4, tw->f);
+  elementCount += fread(&tw->h.ChunkSize, sizeof(uint32_t), 1, tw->f);
+  elementCount += fread(tw->h.Format, sizeof(u_char), 4, tw->f);
+  
+  if (elementCount < 9 ||
+      tw->h.ChunkID[0] != 'R' || tw->h.ChunkID[1] != 'I' || tw->h.ChunkID[2] != 'F' || tw->h.ChunkID[3] != 'F' ||
+      tw->h.Format[0] != 'W' || tw->h.Format[1] != 'A' || tw->h.Format[2] != 'V' || tw->h.Format[3] != 'E') {
     tinywav_close_read(tw);
     return -1;
   }
   
-  if (tw->h.ChunkID != htonl(0x52494646) || tw->h.Format != htonl(0x57415645) || tw->h.Subchunk1ID != htonl(0x666d7420)) {
-    // TODO: read these byte-by-byte to avoid htonl dependency
-    //htonl(0x52494646) "RIFF"
-    //htonl(0x57415645) "WAVE"
-    //htonl(0x666d7420) "fmt "
-    tinywav_close_read(tw);
-    return -1;
+  // Go through subchunks until we find 'fmt '  (There are sometimes JUNK or other chunks before 'fmt ')
+  while (fread(tw->h.Subchunk1ID, sizeof(u_char), 4, tw->f) == 4) {
+    elementCount = fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
+    if (elementCount != 1) {
+      tinywav_close_read(tw);
+      return -1;
+    }
+    
+    if (tw->h.Subchunk1ID[0] == 'f' && tw->h.Subchunk1ID[1] == 'm' && tw->h.Subchunk1ID[2] == 't' && tw->h.Subchunk1ID[3] == ' ') {
+      break;
+    }
+    fseek(tw->f, tw->h.Subchunk1Size, SEEK_CUR); // skip this subchunk
   }
   
-  // skip over any other chunks before the "data" chunk
-  bool additionalHeaderDataPresent = false;
-  while (tw->h.Subchunk2ID != htonl(0x64617461)) {   // "data"
-    // TODO: look at return values of these calls!
-    fseek(tw->f, 4, SEEK_CUR);
-    fread(&tw->h.Subchunk2ID, 4, 1, tw->f);
-    additionalHeaderDataPresent = true;
-  }
-  if (tw->h.Subchunk2ID != htonl(0x64617461)) {  // "data"
-    tinywav_close_read(tw);
-    return -1;
-  }
+  // fmt Subchunk
+  elementCount  = fread(&tw->h.AudioFormat, sizeof(uint16_t), 1, tw->f);
+  elementCount += fread(&tw->h.NumChannels, sizeof(uint16_t), 1, tw->f);
+  elementCount += fread(&tw->h.SampleRate, sizeof(uint32_t), 1, tw->f);
+  elementCount += fread(&tw->h.ByteRate, sizeof(uint32_t), 1, tw->f);
+  elementCount += fread(&tw->h.BlockAlign, sizeof(uint16_t), 1, tw->f);
+  elementCount += fread(&tw->h.BitsPerSample, sizeof(uint16_t), 1, tw->f);
   
-  if (additionalHeaderDataPresent) {
-    // read the value of Subchunk2Size, the one populated when reading 'TinyWavHeader' structure is wrong
-    // TODO: verify return value!
-    fread(&tw->h.Subchunk2Size, 4, 1, tw->f);
+  // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
+  while (fread(tw->h.Subchunk2ID, sizeof(u_char), 4, tw->f) == 4) {
+    elementCount = fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
+    if (elementCount != 1) {
+      tinywav_close_read(tw);
+      return -1;
+    }
+    
+    if (tw->h.Subchunk2ID[0] == 'd' && tw->h.Subchunk2ID[1] == 'a' && tw->h.Subchunk2ID[2] == 't' && tw->h.Subchunk2ID[3] == 'a') {
+      break;
+    }
+    fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR); // skip this subchunk
   }
     
   tw->numChannels = tw->h.NumChannels;
@@ -158,6 +184,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     return -1;
   }
   
+  // TODO: only allow to read as much as is
   switch (tw->sampFmt) {
     case TW_INT16: {
       int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
@@ -332,10 +359,10 @@ void tinywav_close_write(TinyWav *tw) {
   // TODO: check return values for fseek/fwrite!
   fseek(tw->f, 4, SEEK_SET);
   uint32_t chunkSize_len = 36 + data_len;
-  fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f);
+  fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f); // write ChunkSize
 
   fseek(tw->f, 40, SEEK_SET);
-  fwrite(&data_len, sizeof(uint32_t), 1, tw->f);
+  fwrite(&data_len, sizeof(uint32_t), 1, tw->f); // write Subchunk2Size
 
   fclose(tw->f);
   tw->f = NULL;
