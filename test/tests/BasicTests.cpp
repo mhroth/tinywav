@@ -25,6 +25,10 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 
   const char* testFile = "testFile.wav";
 
+  if (TestCommon::fileExists(testFile)) {
+      REQUIRE(remove(testFile) == 0);
+  }
+
   TinyWavSampleFormat sampleFormat = GENERATE(TW_FLOAT32, TW_INT16);
   TinyWavChannelFormat channelFormatW = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
   TinyWavChannelFormat channelFormatR = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
@@ -140,10 +144,69 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
 
 TEST_CASE("Tinywav - Test Error Behaviour")
 {
-  
   TinyWavChannelFormat channelFormat = GENERATE(TW_INTERLEAVED, TW_INLINE, TW_SPLIT);
   TinyWav tw;
-  // TODO: need to switch from assertion to return values to test more
-//  REQUIRE(tinywav_open_read(&tw, "bogus.wav", channelFormat) != 0);
+  
+  if (TestCommon::fileExists("bogus.wav")) {
+    REQUIRE(std::remove("bogus.wav") == 0);
+  }
+  
+  SECTION("Test _open_ functions") {
+    REQUIRE(tinywav_open_read(NULL, NULL, channelFormat) != 0);
+    REQUIRE(tinywav_open_read(NULL, "bogus.wav", channelFormat) != 0);
+    REQUIRE(tinywav_open_read(&tw, "bogus.wav", channelFormat) != 0);
+    tinywav_close_read(&tw);
+    
+    REQUIRE(tinywav_open_write(NULL, -1, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
+    REQUIRE(tinywav_open_write(&tw, -1, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
+    REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, NULL) != 0);
+    REQUIRE(tinywav_open_write(&tw, 2, -1, TW_FLOAT32, TW_INLINE, "bogus.wav") != 0);
+  }
+  
+  SECTION("Test _write_f") {
+    REQUIRE(tinywav_open_write(&tw, 2, 8000, TW_FLOAT32, TW_INLINE, "bogus.wav") == 0);
+    REQUIRE(tinywav_write_f(NULL, NULL, -1) != 0);
+    REQUIRE(tinywav_write_f(&tw, NULL, -1) != 0);
+
+    float buffer[128];
+    REQUIRE(tinywav_write_f(NULL, buffer, -1) != 0);
+    REQUIRE(tinywav_write_f(NULL, buffer, 16) != 0);
+    REQUIRE(tinywav_write_f(&tw, buffer, 0) == 0);
+    REQUIRE(tinywav_write_f(&tw, buffer, 16) == 16);
+    REQUIRE(tinywav_write_f(&tw, buffer, 23) == 23);
+    
+    tinywav_close_write(&tw);
+  }
+  
+  SECTION("Test _read_f") {
+    constexpr int numChannels = 2;
+    REQUIRE(tinywav_open_write(&tw, numChannels, 8000, TW_FLOAT32, TW_INTERLEAVED, "bogus.wav") == 0);
+    tinywav_close_write(&tw);
+    
+    REQUIRE(tinywav_open_read(&tw, "bogus.wav", TW_INTERLEAVED) == 0);
+    REQUIRE(tinywav_read_f(NULL, NULL, -1) != 0);
+    REQUIRE(tinywav_read_f(&tw, NULL, -1) != 0);
+    float buffer[128];
+    REQUIRE(tinywav_read_f(&tw, buffer, -1) != 0);
+    REQUIRE(tinywav_read_f(&tw, buffer, 0) == 0);
+    REQUIRE(tinywav_read_f(&tw, buffer, 16) == 0); // no data in file yet!
+    tinywav_close_read(&tw);
+
+    // Test data
+    constexpr int numSamples = 64;
+    const std::vector<float> testData = TestCommon::createRandomVector(numChannels*numSamples);
+    REQUIRE(tinywav_open_write(&tw, numChannels, 8000, TW_FLOAT32, TW_INTERLEAVED, "bogus.wav") == 0);
+    REQUIRE(tinywav_write_f(&tw, (void*)testData.data(), numSamples) == numSamples);
+    tinywav_close_write(&tw);
+    
+    REQUIRE(tinywav_open_read(&tw, "bogus.wav", TW_INTERLEAVED) == 0);
+    REQUIRE(tinywav_read_f(&tw, buffer, 0) == 0); // reading 0 samples is a valid operation
+    REQUIRE(tinywav_read_f(&tw, buffer, 16) == 16);
+    REQUIRE(tinywav_read_f(&tw, buffer, numSamples-16-1) == numSamples-16-1); // leave one sample unread
+    REQUIRE(tinywav_read_f(&tw, buffer, 1) == 1); // last sample
+    REQUIRE(tinywav_read_f(&tw, buffer, 1) == 0); // no more data available
+    
+    tinywav_close_read(&tw);
+  }
   
 }
