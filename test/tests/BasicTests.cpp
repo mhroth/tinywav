@@ -91,11 +91,11 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.totalFramesReadWritten == 0);
 
   // verify header
-  REQUIRE(tw.h.ChunkID == htonl(0x52494646)); // "RIFF"
+  REQUIRE(*((uint32_t*)&tw.h.ChunkID) == htonl(0x52494646)); // "RIFF"
   int s = sizeof(TinyWavHeader);
   REQUIRE(tw.h.ChunkSize == frameCount * numChannels * bytesPerSample + 36); // TODO: 36?
-  REQUIRE(tw.h.Format == htonl(0x57415645)); // "WAVE"
-  REQUIRE(tw.h.Subchunk1ID == htonl(0x666d7420)); // "fmt "
+  REQUIRE(*((uint32_t*)&tw.h.Format) == htonl(0x57415645)); // "WAVE"
+  REQUIRE(*((uint32_t*)&tw.h.Subchunk1ID) == htonl(0x666d7420)); // "fmt "
   REQUIRE(tw.h.Subchunk1Size == 16); // PCM
   REQUIRE(tw.h.AudioFormat == (int)sampleFormat-1); // 1 PCM, 3 IEEE float
   REQUIRE(tw.h.NumChannels == numChannels);
@@ -103,7 +103,7 @@ TEST_CASE("Tinywav - Basic Reading/Writing Loop", "aka Eat Your Own Dog Food")
   REQUIRE(tw.h.ByteRate == sampleRate * numChannels * bytesPerSample);
   REQUIRE(tw.h.BlockAlign == numChannels * bytesPerSample);
   REQUIRE(tw.h.BitsPerSample == bytesPerSample * 8);
-  REQUIRE(tw.h.Subchunk2ID == htonl(0x64617461)); // "data"
+  REQUIRE(*((uint32_t*)&tw.h.Subchunk2ID) == htonl(0x64617461)); // "data"
   REQUIRE(tw.h.Subchunk2Size == frameCount * numChannels * bytesPerSample);
 
   std::vector<float> readSamples;

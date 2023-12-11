@@ -52,10 +52,19 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
 
   // prepare WAV header
   TinyWavHeader h;
-  h.ChunkID = htonl(0x52494646); // "RIFF"
+  h.ChunkID[0] = 'R';
+  h.ChunkID[1] = 'I';
+  h.ChunkID[2] = 'F';
+  h.ChunkID[3] = 'F';
   h.ChunkSize = 0; // fill this in on file-close
-  h.Format = htonl(0x57415645); // "WAVE"
-  h.Subchunk1ID = htonl(0x666d7420); // "fmt "
+  h.Format[0] = 'W';
+  h.Format[1] = 'A';
+  h.Format[2] = 'V';
+  h.Format[3] = 'E';
+  h.Subchunk1ID[0] = 'f';
+  h.Subchunk1ID[1] = 'm';
+  h.Subchunk1ID[2] = 't';
+  h.Subchunk1ID[3] = ' ';
   h.Subchunk1Size = 16; // PCM
   h.AudioFormat = (tw->sampFmt-1); // 1 PCM, 3 IEEE float
   h.NumChannels = numChannels;

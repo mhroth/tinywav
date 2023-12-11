@@ -30,10 +30,10 @@ extern "C" {
 // http://soundfile.sapp.org/doc/WaveFormat/
 
 typedef struct TinyWavHeader {
-  uint32_t ChunkID;
+  u_char ChunkID[4];
   uint32_t ChunkSize;
-  uint32_t Format;
-  uint32_t Subchunk1ID;
+  u_char Format[4];
+  u_char Subchunk1ID[4];
   uint32_t Subchunk1Size;
   uint16_t AudioFormat;
   uint16_t NumChannels;
@@ -41,7 +41,7 @@ typedef struct TinyWavHeader {
   uint32_t ByteRate;
   uint16_t BlockAlign;
   uint16_t BitsPerSample;
-  uint32_t Subchunk2ID;
+  u_char Subchunk2ID[4];
   uint32_t Subchunk2Size;
 } TinyWavHeader;
   
