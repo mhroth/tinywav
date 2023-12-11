@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2022, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2023, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,12 +34,13 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "wb");
-  if (err != 0) { return err; }
+  if (err != 0) { tw->f == NULL; }
 #else
   tw->f = fopen(path, "wb");
 #endif
   
   if (tw->f == NULL) {
+    perror("[tinywav] Failed to open file for writing");
     return -1;
   }
 
@@ -79,12 +80,13 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "rb");
-  if (err != 0) { return err; }
+  if (err != 0) { tw->f == NULL; }
 #else
   tw->f = fopen(path, "rb");
 #endif
   
   if (tw->f == NULL) {
+    perror("[tinywav] Failed to open file for reading");
     return -1;
   }
   
@@ -132,7 +134,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     tw->sampFmt = TW_INT16; // file has 16-bit int samples
   } else {
     tw->sampFmt = TW_FLOAT32;
-    printf("Warning: wav file has %d bits per sample (int), which is not natively supported yet. Treating them as float; you may want to convert them manually after reading.\n", tw->h.BitsPerSample);
+    printf("[tinywav] Warning: wav file has %d bits per sample (int), which is not natively supported yet. Treating them as float; you may want to convert them manually after reading.\n", tw->h.BitsPerSample);
   }
 
   tw->numFramesInHeader = tw->h.Subchunk2Size / (tw->numChannels * tw->sampFmt);

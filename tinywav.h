@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2022, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2023, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
