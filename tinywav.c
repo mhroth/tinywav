@@ -16,12 +16,9 @@
 
 #include <string.h> // for memcpy
 #if _WIN32
-#include <winsock.h>
 #include <malloc.h> // for alloca
-#pragma comment(lib, "Ws2_32.lib")
 #else
 #include <alloca.h>
-#include <netinet/in.h>
 #endif
 #include "tinywav.h"
 
@@ -113,9 +110,9 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   size_t elementCount;
   
   // RIFF Chunk
-  elementCount  = fread(tw->h.ChunkID, sizeof(u_char), 4, tw->f);
+  elementCount  = fread(tw->h.ChunkID, sizeof(unsigned char), 4, tw->f);
   elementCount += fread(&tw->h.ChunkSize, sizeof(uint32_t), 1, tw->f);
-  elementCount += fread(tw->h.Format, sizeof(u_char), 4, tw->f);
+  elementCount += fread(tw->h.Format, sizeof(unsigned char), 4, tw->f);
   
   if (elementCount < 9 ||
       tw->h.ChunkID[0] != 'R' || tw->h.ChunkID[1] != 'I' || tw->h.ChunkID[2] != 'F' || tw->h.ChunkID[3] != 'F' ||
@@ -125,7 +122,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   }
   
   // Go through subchunks until we find 'fmt '  (There are sometimes JUNK or other chunks before 'fmt ')
-  while (fread(tw->h.Subchunk1ID, sizeof(u_char), 4, tw->f) == 4) {
+  while (fread(tw->h.Subchunk1ID, sizeof(unsigned char), 4, tw->f) == 4) {
     elementCount = fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
     if (elementCount != 1) {
       tinywav_close_read(tw);
@@ -147,7 +144,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   elementCount += fread(&tw->h.BitsPerSample, sizeof(uint16_t), 1, tw->f);
   
   // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
-  while (fread(tw->h.Subchunk2ID, sizeof(u_char), 4, tw->f) == 4) {
+  while (fread(tw->h.Subchunk2ID, sizeof(unsigned char), 4, tw->f) == 4) {
     elementCount = fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
     if (elementCount != 1) {
       tinywav_close_read(tw);
