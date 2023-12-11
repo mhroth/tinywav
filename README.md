@@ -7,10 +7,17 @@
 
 A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files. Designed for maximum portability.
 
-* Tinywav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
-* Tinywav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
-* Tinywav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows.
+* TinyWav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
+* TinyWav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
+* TinyWav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows.
 
+**CI/CD**: To guarantee portability, TinyWav is built and tested on several platforms, compilers & architectures:
+
+![](https://img.shields.io/badge/macos-Clang_14-teal)
+![](https://img.shields.io/badge/linux-GCC_7-teal)
+![](https://img.shields.io/badge/linux-GCC_11-teal)
+![](https://img.shields.io/badge/windows-MSVC_VS2022_(x64)-teal)
+![](https://img.shields.io/badge/windows-MSVC_VS2022_(arm64)_[build_only]-teal)
 [![Build & Test](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml)
 
 ## Code Example
@@ -19,7 +26,7 @@ A minimal C library for reading and writing (32-bit float or 16-bit int) WAV aud
 ```c
 #include "tinywav.h"
 
-#define NUM_CHANNELS 1
+#define NUM_CHANNELS 2
 #define SAMPLE_RATE 48000
 #define BLOCK_SIZE 480
 
@@ -78,6 +85,22 @@ for (int i = 0; i < 100; i++) {
 
 tinywav_close_read(&tw);
 ```
+
+## Running the Tests
+
+TinyWav relies on Cmake for its test builds. The automated tests are based on the [Catch2](https://github.com/catchorg/Catch2) C++ test framework.
+
+To run the tests, run one of the generator scripts in the `test/scripts` directory to generate a Xcode/VS project - or directly use Cmake in the commandline:
+
+```bash
+mkdir -p test/scripts/build
+cd test/scripts/build
+cmake ../../..
+make
+ctest # or run ./TinyWavTest directly
+```
+
+> **NOTE**: The Git repository uses Git LFS to store some reference wav files as binaries. Make sure you have Git LFS installed/enabled/pulled before running the tests.
 
 ## License
 TinyWav is published under the [ISC license](http://opensource.org/licenses/ISC). Please see the `LICENSE` file included in this repository, also reproduced below. In short, you are welcome to use this code for any purpose, including commercial and closed-source use.
