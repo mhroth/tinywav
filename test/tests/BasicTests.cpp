@@ -190,7 +190,8 @@ TEST_CASE("Tinywav - Test Error Behaviour")
     REQUIRE(tinywav_read_f(&tw, buffer, -1) != 0);
     REQUIRE(tinywav_read_f(&tw, buffer, 0) == 0);
     REQUIRE(tinywav_read_f(&tw, buffer, 16) == 0); // no data in file yet!
-    
+    tinywav_close_read(&tw);
+
     // Test data
     constexpr int numSamples = 64;
     const std::vector<float> testData = TestCommon::createRandomVector(numChannels*numSamples);
