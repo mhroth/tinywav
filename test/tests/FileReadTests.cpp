@@ -116,5 +116,52 @@ TEST_CASE("Read wave file with a lot of metadata afer fmt")
   REQUIRE(tw.h.Subchunk2Size == 768000);
   REQUIRE(tw.numFramesInHeader == 96000);
 }
+
+TEST_CASE("Read wave file 'JUNK' afer fmt")
+{
+  TinyWav tw;
+  REQUIRE(tinywav_open_read(&tw, std::string(basedir + "testfile-bext-after-fmt.wav").c_str(), TW_INTERLEAVED) == 0);
+  tinywav_close_read(&tw);
+  REQUIRE(tw.sampFmt == TW_FLOAT32);
+  REQUIRE(tw.numChannels == 2);
+  REQUIRE(tw.h.SampleRate == 48000);
+  REQUIRE(tw.h.NumChannels == 2);
+  REQUIRE(tw.h.AudioFormat == 3);
+  REQUIRE(tw.h.BitsPerSample == 32);
+  REQUIRE(tw.h.BlockAlign == 8);
+  REQUIRE(tw.h.ByteRate == 384000);
+  REQUIRE(tw.h.Subchunk2Size == 221992);
+  REQUIRE(tw.numFramesInHeader == 27749);
+  
+  REQUIRE(tinywav_open_read(&tw, std::string(basedir + "testfile-bext-and-JUNK-after-fmt.wav").c_str(), TW_INTERLEAVED) == 0);
+  tinywav_close_read(&tw);
+  REQUIRE(tw.sampFmt == TW_FLOAT32);
+  REQUIRE(tw.numChannels == 2);
+  REQUIRE(tw.h.SampleRate == 48000);
+  REQUIRE(tw.h.NumChannels == 2);
+  REQUIRE(tw.h.AudioFormat == 1);
+  REQUIRE(tw.h.BitsPerSample == 32);
+  REQUIRE(tw.h.BlockAlign == 8);
+  REQUIRE(tw.h.ByteRate == 384000);
+  REQUIRE(tw.h.Subchunk2Size == 768000);
   REQUIRE(tw.numFramesInHeader == 96000);
+
 }
+
+TEST_CASE("Read wave file 'LIST' & 'INFO' afer fmt")
+{
+  TinyWav tw;
+  REQUIRE(tinywav_open_read(&tw, std::string(basedir + "testfile-LIST-INFO-after-fmt.wav").c_str(), TW_INTERLEAVED) == 0);
+  tinywav_close_read(&tw);
+  REQUIRE(tw.sampFmt == TW_INT16);
+  REQUIRE(tw.numChannels == 2);
+  REQUIRE(tw.h.SampleRate == 48000);
+  REQUIRE(tw.h.NumChannels == 2);
+  REQUIRE(tw.h.AudioFormat == 1);
+  REQUIRE(tw.h.BitsPerSample == 16);
+  REQUIRE(tw.h.BlockAlign == 4);
+  REQUIRE(tw.h.ByteRate == 192000);
+  REQUIRE(tw.h.Subchunk2Size == 922);
+  REQUIRE(tw.numFramesInHeader == 230);
+}
+  
