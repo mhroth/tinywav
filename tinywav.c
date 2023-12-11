@@ -123,16 +123,12 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
   // Go through subchunks until we find 'fmt '  (There are sometimes JUNK or other chunks before 'fmt ')
   while (fread(tw->h.Subchunk1ID, sizeof(unsigned char), 4, tw->f) == 4) {
-    elementCount = fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
-    if (elementCount != 1) {
-      tinywav_close_read(tw);
-      return -1;
-    }
-    
+    fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
     if (tw->h.Subchunk1ID[0] == 'f' && tw->h.Subchunk1ID[1] == 'm' && tw->h.Subchunk1ID[2] == 't' && tw->h.Subchunk1ID[3] == ' ') {
       break;
+    } else {
+      fseek(tw->f, tw->h.Subchunk1Size, SEEK_CUR); // skip this subchunk
     }
-    fseek(tw->f, tw->h.Subchunk1Size, SEEK_CUR); // skip this subchunk
   }
   
   // fmt Subchunk
@@ -142,19 +138,19 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   elementCount += fread(&tw->h.ByteRate, sizeof(uint32_t), 1, tw->f);
   elementCount += fread(&tw->h.BlockAlign, sizeof(uint16_t), 1, tw->f);
   elementCount += fread(&tw->h.BitsPerSample, sizeof(uint16_t), 1, tw->f);
+  if (elementCount != 6) {
+    tinywav_close_read(tw);
+    return -1;
+  }
   
   // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
   while (fread(tw->h.Subchunk2ID, sizeof(unsigned char), 4, tw->f) == 4) {
-    elementCount = fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
-    if (elementCount != 1) {
-      tinywav_close_read(tw);
-      return -1;
-    }
-    
+    fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
     if (tw->h.Subchunk2ID[0] == 'd' && tw->h.Subchunk2ID[1] == 'a' && tw->h.Subchunk2ID[2] == 't' && tw->h.Subchunk2ID[3] == 'a') {
       break;
+    } else {
+      fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR); // skip this subchunk
     }
-    fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR); // skip this subchunk
   }
     
   tw->numChannels = tw->h.NumChannels;
@@ -353,17 +349,13 @@ void tinywav_close_write(TinyWav *tw) {
   }
   
   uint32_t data_len = tw->totalFramesReadWritten * tw->numChannels * tw->sampFmt;
-
-  // TODO: replace or at least comment offsets
-  // e.g. https://stackoverflow.com/questions/50539392/chunksize-in-wav-files
   
   // set length of data
-  // TODO: check return values for fseek/fwrite!
-  fseek(tw->f, 4, SEEK_SET);
-  uint32_t chunkSize_len = 36 + data_len;
+  fseek(tw->f, 4, SEEK_SET); // offset of ChunkSize
+  uint32_t chunkSize_len = 36 + data_len; // 36 is size of header minus 8 (RIFF + this field)
   fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f); // write ChunkSize
 
-  fseek(tw->f, 40, SEEK_SET);
+  fseek(tw->f, 40, SEEK_SET); // offset Subchunk2Size
   fwrite(&data_len, sizeof(uint32_t), 1, tw->f); // write Subchunk2Size
 
   fclose(tw->f);
