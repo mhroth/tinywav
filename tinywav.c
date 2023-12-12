@@ -22,6 +22,17 @@
 #endif
 #include "tinywav.h"
 
+/** @returns true if the chunk of 4 characters matches the supplied string */
+static bool chunkIDMatches(char chunk[4], const char* chunkName)
+{
+  for (int i=0; i<4; ++i) {
+    if (chunk[i] != chunkName[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, TinyWavSampleFormat sampFmt,
                        TinyWavChannelFormat chanFmt, const char *path) {
   
@@ -48,6 +59,8 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   tw->chanFmt = chanFmt;
 
   // prepare WAV header
+  /**@note: We do this byte-by-byte to avoid dependencies (htonl() et al.) and because struct padding depends on
+   * specific compiler implementation ('slurping' directly into the header struct is therefore dangerous). */
   tw->h.ChunkID[0] = 'R';
   tw->h.ChunkID[1] = 'I';
   tw->h.ChunkID[2] = 'F';
@@ -113,24 +126,17 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     return -1;
   }
   
-  // MARK: Parse WAV header
-  
-  /**
-   * NOTE: We do this byte-by-byte to avoid dependencies (htonl() et al.) and because struct padding depends on
-   * specific compiler implementation ('slurping' directly into the header struct is therefore dangerous).
-   *
-   * The RIFF format specifies little-endian order for the data stream.
-   */
-  size_t elementCount;
-  
-  // RIFF Chunk
-  elementCount  = fread(tw->h.ChunkID, sizeof(char), 4, tw->f);
+  // Parse WAV header
+  /** @note: We do this byte-by-byte to avoid dependencies (htonl() et al.) and because struct padding depends on
+   *  specific compiler implementation ('slurping' directly into the header struct is therefore dangerous).
+   *  The RIFF format specifies little-endian order for the data stream. */
+
+  // RIFF Chunk, WAVE Subchunk
+  size_t elementCount = fread(tw->h.ChunkID, sizeof(char), 4, tw->f);
   elementCount += fread(&tw->h.ChunkSize, sizeof(uint32_t), 1, tw->f);
   elementCount += fread(tw->h.Format, sizeof(char), 4, tw->f);
   
-  if (elementCount < 9 ||
-      tw->h.ChunkID[0] != 'R' || tw->h.ChunkID[1] != 'I' || tw->h.ChunkID[2] != 'F' || tw->h.ChunkID[3] != 'F' ||
-      tw->h.Format[0] != 'W' || tw->h.Format[1] != 'A' || tw->h.Format[2] != 'V' || tw->h.Format[3] != 'E') {
+  if (elementCount < 9 || !chunkIDMatches(tw->h.ChunkID, "RIFF") || !chunkIDMatches(tw->h.Format, "WAVE")) {
     tinywav_close_read(tw);
     return -1;
   }
@@ -138,7 +144,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   // Go through subchunks until we find 'fmt '  (There are sometimes JUNK or other chunks before 'fmt ')
   while (fread(tw->h.Subchunk1ID, sizeof(char), 4, tw->f) == 4) {
     fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
-    if (tw->h.Subchunk1ID[0] == 'f' && tw->h.Subchunk1ID[1] == 'm' && tw->h.Subchunk1ID[2] == 't' && tw->h.Subchunk1ID[3] == ' ') {
+    if (chunkIDMatches(tw->h.Subchunk1ID, "fmt ")) {
       break;
     } else {
       fseek(tw->f, tw->h.Subchunk1Size, SEEK_CUR); // skip this subchunk
@@ -160,7 +166,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
   while (fread(tw->h.Subchunk2ID, sizeof(char), 4, tw->f) == 4) {
     fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
-    if (tw->h.Subchunk2ID[0] == 'd' && tw->h.Subchunk2ID[1] == 'a' && tw->h.Subchunk2ID[2] == 't' && tw->h.Subchunk2ID[3] == 'a') {
+    if (chunkIDMatches(tw->h.Subchunk2ID, "data")) {
       break;
     } else {
       fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR); // skip this subchunk
