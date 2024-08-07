@@ -3,7 +3,7 @@ on:
   workflow_call:
 jobs:
   build:
-    name: Linux, ${{matrix.cxx}}, C++${{matrix.std}}, ${{matrix.build_type}}
+    name: Linux, ${{matrix.cxx}}, ${{matrix.tinywav_options}}, ${{matrix.build_type}}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false

@@ -3,7 +3,7 @@ on:
   workflow_call:
 jobs:
   build:
-    name: ${{matrix.os}}, ${{matrix.cxx}}, C++${{matrix.std}}, ${{matrix.build_type}}
+    name: ${{matrix.os}}, ${{matrix.cxx}}, ${{matrix.tinywav_options}}, ${{matrix.build_type}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
