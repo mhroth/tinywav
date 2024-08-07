@@ -10,6 +10,7 @@ A minimal C library for reading and writing (32-bit float or 16-bit int) WAV aud
 * TinyWav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
 * TinyWav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
 * TinyWav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows.
+   * On platforms where `alloca` is not available (e.g. some DSP compilers), `TINYWAV_USE_VLA` or `TINYWAV_USE_MALLOC` can be defined.
 
 **CI/CD**: To guarantee portability, TinyWav is built and tested on several platforms, compilers & architectures:
 
