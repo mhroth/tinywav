@@ -22,10 +22,12 @@
     #define TINYWAV_USE_ALLOCA 1 // default
 #endif
 
-#if TINYWAV_USE_MALLOC || (defined(_WIN32) && TINYWAV_USE_ALLOCA)
+#if defined(_WIN32) && (TINYWAV_USE_ALLOCA || TINYWAV_USE_MALLOC)
   #include <malloc.h>
 #elif TINYWAV_USE_ALLOCA
   #include <alloca.h>
+#elif TINYWAV_USE_MALLOC
+  #include <stdlib.h>
 #elif TINYWAV_USE_VLA
     #if _MSC_VER && (__STDC__ || __STDC_NO_VLA__)
         #pragma message ("Cannot use VLA -- MSVC is not a C99-compliant compiler!")
@@ -35,15 +37,15 @@
 #endif
 
 #if TINYWAV_USE_ALLOCA
-    #define TW_ALLOC(type, var, sz) type* var = (type*) alloca(sz*sizeof(type))
+    #define TW_ALLOC(type, var, sz) type* var = (type*) alloca((sz)*sizeof(type))
 #elif TINYWAV_USE_VLA
-    #define TW_ALLOC(type, var, sz) type var[sz]
+    #define TW_ALLOC(type, var, sz) type var[(sz)]
 #elif TINYWAV_USE_MALLOC
-    #define TW_ALLOC(type, var, sz) type* s = (type*) malloc(sz*sizeof(type))
+    #define TW_ALLOC(type, var, sz) type* var = (type*) malloc((sz)*sizeof(type))
 #endif
 
 #if TINYWAV_USE_MALLOC
-    #define TW_DEALLOC(x) (free(x))
+    #define TW_DEALLOC(x) free(x)
 #else
     #define TW_DEALLOC(x)
 #endif
