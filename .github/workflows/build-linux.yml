@@ -4,19 +4,19 @@ on:
 jobs:
   build:
     name: Linux, ${{matrix.cxx}}, C++${{matrix.std}}, ${{matrix.build_type}}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         cxx:
-          - g++-7
+          - g++-8
           - g++-11
         build_type: [Debug, Release]
         std: [14]
         include:
-          - cxx: g++-7
-            cc: gcc-7
-            other_pkgs: g++-7 gcc-7
+          - cxx: g++-8
+            cc: gcc-8
+            other_pkgs: g++-8 gcc-8
           - cxx: g++-11
             cc: gcc-11
             other_pkgs: g++-11 gcc-11
