@@ -12,6 +12,7 @@ jobs:
         platform: [x64, arm64]
         build_type: [Debug, Release]
         std: [14]
+        tinywav_options: [ALLOCA, MALLOC] # VLA not supported with MSVC
     steps:
       - uses: actions/checkout@v4
         with:

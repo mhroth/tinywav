@@ -13,6 +13,7 @@ jobs:
           - g++-11
         build_type: [Debug, Release]
         std: [14]
+        tinywav_options: [ALLOCA, MALLOC, VLA]
         include:
           - cxx: g++-8
             cc: gcc-8
@@ -39,6 +40,7 @@ jobs:
         cd build
         cmake -DCMAKE_CXX_STANDARD=${{matrix.std}} \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} \
               ..
         
     - name: Build & Run Tests

@@ -9,6 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-11]
+        tinywav_options: [ALLOCA, MALLOC, VLA]
         cxx:
           - clang++
         build_type: [Debug, Release]
@@ -27,6 +28,7 @@ jobs:
         cd build
         cmake -DCMAKE_CXX_STANDARD=${{matrix.std}} \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} \
               ..
         
     - name: Build & Run Tests
