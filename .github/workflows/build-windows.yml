@@ -24,7 +24,7 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} `
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} `
-                -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} ``
+                -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} `
                 -A ${{matrix.platform}} `
                 ..
             
