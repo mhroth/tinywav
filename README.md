@@ -15,7 +15,7 @@ A minimal C library for reading and writing (32-bit float or 16-bit int) WAV aud
 **CI/CD**: To guarantee portability, TinyWav is built and tested on several platforms, compilers & architectures:
 
 ![](https://img.shields.io/badge/macos-Clang_14-teal)
-![](https://img.shields.io/badge/linux-GCC_7-teal)
+![](https://img.shields.io/badge/linux-GCC_9-teal)
 ![](https://img.shields.io/badge/linux-GCC_11-teal)
 ![](https://img.shields.io/badge/windows-MSVC_VS2022_(x64)-teal)
 ![](https://img.shields.io/badge/windows-MSVC_VS2022_(arm64)_[build_only]-teal)
