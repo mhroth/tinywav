@@ -3,7 +3,7 @@ on:
   workflow_call:
 jobs:
   build:
-    name: ${{matrix.os}}, MSVC, C++${{matrix.std}}, ${{matrix.build_type}}, ${{matrix.platform}}
+    name: ${{matrix.os}}, MSVC, ${{matrix.tinywav_options}}, ${{matrix.build_type}}, ${{matrix.platform}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -12,6 +12,7 @@ jobs:
         platform: [x64, arm64]
         build_type: [Debug, Release]
         std: [14]
+        tinywav_options: [ALLOCA, MALLOC] # VLA not supported with MSVC
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,6 +24,7 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} `
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} `
+                -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} `
                 -A ${{matrix.platform}} `
                 ..
             

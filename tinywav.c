@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2023, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2024	, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,12 +15,42 @@
  */
 
 #include <string.h> // for memcpy
-#if _WIN32
-#include <malloc.h> // for alloca
-#else
-#include <alloca.h>
-#endif
 #include "tinywav.h"
+
+// MARK: Processor Helpers
+#if !defined(TINYWAV_USE_ALLOCA) && !defined(TINYWAV_USE_VLA) && !defined(TINYWAV_USE_MALLOC)
+    #define TINYWAV_USE_ALLOCA 1 // default
+#endif
+
+#if defined(_WIN32) && (TINYWAV_USE_ALLOCA || TINYWAV_USE_MALLOC)
+  #include <malloc.h>
+#elif TINYWAV_USE_ALLOCA
+  #include <alloca.h>
+#elif TINYWAV_USE_MALLOC
+  #include <stdlib.h>
+#elif TINYWAV_USE_VLA
+    #if _MSC_VER && (__STDC__ || __STDC_NO_VLA__)
+        #pragma message ("Cannot use VLA -- MSVC is not a C99-compliant compiler!")
+    #elif defined(__STDC__) && (__STDC_VERSION__ < 199901L)
+        #error Cannot use VLA -- C standard must be at least C99 / have VLA support!
+    #endif
+#endif
+
+#if TINYWAV_USE_ALLOCA
+    #define TW_ALLOC(type, var, sz) type* var = (type*) alloca((sz)*sizeof(type))
+#elif TINYWAV_USE_VLA
+    #define TW_ALLOC(type, var, sz) type var[(sz)]
+#elif TINYWAV_USE_MALLOC
+    #define TW_ALLOC(type, var, sz) type* var = (type*) malloc((sz)*sizeof(type))
+#endif
+
+#if TINYWAV_USE_MALLOC
+    #define TW_DEALLOC(x) free(x)
+#else
+    #define TW_DEALLOC(x)
+#endif
+
+// MARK: private functions
 
 /** @returns true if the chunk of 4 characters matches the supplied string */
 static bool chunkIDMatches(char chunk[4], const char* chunkName)
@@ -32,6 +62,8 @@ static bool chunkIDMatches(char chunk[4], const char* chunkName)
   }
   return true;
 }
+
+// MARK: public functions
 
 int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, TinyWavSampleFormat sampFmt,
                        TinyWavChannelFormat chanFmt, const char *path) {
@@ -205,7 +237,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
   
   switch (tw->sampFmt) {
     case TW_INT16: {
-      int16_t *interleaved_data = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
+      TW_ALLOC(int16_t, interleaved_data, tw->numChannels*len);
       size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
       tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int frames_read = (int) samples_read / tw->numChannels;
@@ -234,9 +266,10 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
         }
         default: return 0;
       }
+      TW_DEALLOC(interleaved_data);
     }
     case TW_FLOAT32: {
-      float *interleaved_data = (float *) alloca(tw->numChannels*len*sizeof(float));
+      TW_ALLOC(float, interleaved_data, tw->numChannels*len);
       size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
       tw->totalFramesReadWritten += samples_read / tw->numChannels;
       int frames_read = (int) samples_read / tw->numChannels;
@@ -263,6 +296,7 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
         }
         default: return 0;
       }
+      TW_DEALLOC(interleaved_data);
     }
     default: return 0;
   }
@@ -288,7 +322,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
   
   switch (tw->sampFmt) {
     case TW_INT16: {
-      int16_t *z = (int16_t *) alloca(tw->numChannels*len*sizeof(int16_t));
+      TW_ALLOC(int16_t, z, tw->numChannels*len);
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
           const float *const x = (const float *const) f;
@@ -321,10 +355,11 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
       size_t frames_written = samples_written / tw->numChannels;
       tw->totalFramesReadWritten += frames_written;
+      TW_DEALLOC(z);
       return (int) frames_written;
     }
     case TW_FLOAT32: {
-      float *z = (float *) alloca(tw->numChannels*len*sizeof(float));
+      TW_ALLOC(float, z, tw->numChannels*len);
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: {
           const float *const x = (const float *const) f;
@@ -357,6 +392,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
       size_t frames_written = samples_written / tw->numChannels;
       tw->totalFramesReadWritten += frames_written;
+      TW_DEALLOC(z);
       return (int) frames_written;
     }
     default: return 0;

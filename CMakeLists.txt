@@ -11,8 +11,26 @@ set(CMAKE_CXX_STANDARD 14)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Cmake options
+set(TINYWAV_ALLOCATION "ALLOCA" CACHE STRING "Configure tinywav's method of allocation")
+set_property(CACHE TINYWAV_ALLOCATION PROPERTY STRINGS ALLOCA VLA MALLOC)
+
+# Source files
 file(GLOB source_files "tinywav.c" "tinywav.h")
 add_library(${PROJECT_NAME} ${source_files})
+
+if (TINYWAV_ALLOCATION MATCHES "ALLOCA")
+  message(STATUS "Configuring tinywav to use ALLOCA for allocations")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TINYWAV_USE_ALLOCA=1)
+elseif(TINYWAV_ALLOCATION MATCHES "VLA")
+  message(STATUS "Configuring tinywav to use VLA for allocations")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TINYWAV_USE_VLA=1)
+elseif(TINYWAV_ALLOCATION MATCHES "MALLOC")
+  message(STATUS "Configuring tinywav to use MALLOC for allocations")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TINYWAV_USE_MALLOC=1)
+else()
+  message(FATAL_ERROR "Invalid option for TINYWAV_ALLOCATION -- valid options are: ALLOCA VLA MALLOC")
+endif()
 
 # TEST TARGET
 set(TEST_NAME "${PROJECT_NAME}Test")

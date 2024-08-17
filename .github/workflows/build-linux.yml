@@ -3,20 +3,21 @@ on:
   workflow_call:
 jobs:
   build:
-    name: Linux, ${{matrix.cxx}}, C++${{matrix.std}}, ${{matrix.build_type}}
-    runs-on: ubuntu-20.04
+    name: Linux, ${{matrix.cxx}}, ${{matrix.tinywav_options}}, ${{matrix.build_type}}
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         cxx:
-          - g++-7
+          - g++-9
           - g++-11
         build_type: [Debug, Release]
         std: [14]
+        tinywav_options: [ALLOCA, MALLOC, VLA]
         include:
-          - cxx: g++-7
-            cc: gcc-7
-            other_pkgs: g++-7 gcc-7
+          - cxx: g++-9
+            cc: gcc-9
+            other_pkgs: g++-9 gcc-9
           - cxx: g++-11
             cc: gcc-11
             other_pkgs: g++-11 gcc-11
@@ -39,6 +40,7 @@ jobs:
         cd build
         cmake -DCMAKE_CXX_STANDARD=${{matrix.std}} \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} \
               ..
         
     - name: Build & Run Tests
