@@ -74,7 +74,7 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "wb");
-  if (err != 0) { tw->f == NULL; }
+  if (err != 0) { tw->f = NULL; }
 #else
   tw->f = fopen(path, "wb");
 #endif
@@ -148,7 +148,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "rb");
-  if (err != 0) { tw->f == NULL; }
+  if (err != 0) { tw->f = NULL; }
 #else
   tw->f = fopen(path, "rb");
 #endif
