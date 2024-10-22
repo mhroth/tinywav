@@ -122,7 +122,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len);
 /** Stop writing to the file. The Tinywav struct is now invalid. */
 void tinywav_close_write(TinyWav *tw);
 
-/** Returns true if the Tinywav struct is available to write or write. False otherwise. */
+/** Returns true if the Tinywav struct is available to read or write. False otherwise. */
 bool tinywav_isOpen(TinyWav *tw);
   
 #ifdef __cplusplus
