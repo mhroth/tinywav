@@ -234,6 +234,8 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     // Sometimes there are additionl chunks *after* -- ignore these.
     return 0; // there's nothing more to read, not an error.
   }
+
+  int ret = 0;
   
   switch (tw->sampFmt) {
     case TW_INT16: {
@@ -246,7 +248,8 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
           for (int pos = 0; pos < tw->numChannels * frames_read; pos++) {
             ((float *) data)[pos] = (float) interleaved_data[pos] / INT16_MAX;
           }
-          return frames_read;
+          ret = frames_read;
+          break;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
@@ -254,7 +257,8 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
               ((float *) data)[pos] = (float) interleaved_data[j] / INT16_MAX;
             }
           }
-          return frames_read;
+          ret = frames_read;
+          break;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
@@ -262,11 +266,13 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
               ((float **) data)[i][j] = (float) interleaved_data[j*tw->numChannels + i] / INT16_MAX;
             }
           }
-          return frames_read;
+          ret = frames_read;
+          break;
         }
-        default: return 0;
+        default: break;
       }
       TW_DEALLOC(interleaved_data);
+      break;
     }
     case TW_FLOAT32: {
       TW_ALLOC(float, interleaved_data, tw->numChannels*len);
@@ -276,7 +282,8 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
           memcpy(data, interleaved_data, tw->numChannels*frames_read*sizeof(float));
-          return frames_read;
+          ret = frames_read;
+          break;
         }
         case TW_INLINE: { // channel buffer is inlined e.g. [LLLLRRRR]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
@@ -284,7 +291,8 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
               ((float *) data)[pos] = interleaved_data[j];
             }
           }
-          return frames_read;
+          ret = frames_read;
+          break;
         }
         case TW_SPLIT: { // channel buffer is split e.g. [[LLLL],[RRRR]]
           for (int i = 0, pos = 0; i < tw->numChannels; i++) {
@@ -292,14 +300,18 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
               ((float **) data)[i][j] = interleaved_data[j*tw->numChannels + i];
             }
           }
-          return frames_read;
+          ret = frames_read;
+          break;
         }
-        default: return 0;
+        default: break;
       }
       TW_DEALLOC(interleaved_data);
+      break;
     }
-    default: return 0;
+    default: break;
   }
+
+  return ret;
 }
 
 void tinywav_close_read(TinyWav *tw) {
@@ -349,7 +361,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           }
           break;
         }
-        default: return 0;
+        default: TW_DEALLOC(z); return 0;
       }
 
       size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
@@ -386,7 +398,7 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
           }
           break;
         }
-        default: return 0;
+        default: TW_DEALLOC(z); return 0;
       }
 
       size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
