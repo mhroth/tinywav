@@ -107,12 +107,12 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   tw->h.Subchunk1ID[2] = 't';
   tw->h.Subchunk1ID[3] = ' ';
   tw->h.Subchunk1Size = 16; // PCM
-  tw->h.AudioFormat = (tw->sampFmt-1); // 1 PCM, 3 IEEE float
-  tw->h.NumChannels = numChannels;
+  tw->h.AudioFormat = (uint16_t) (tw->sampFmt - 1); // 1 PCM, 3 IEEE float
+  tw->h.NumChannels = (uint16_t) numChannels;
   tw->h.SampleRate = samplerate;
   tw->h.ByteRate = samplerate * numChannels * tw->sampFmt;
-  tw->h.BlockAlign = numChannels * tw->sampFmt;
-  tw->h.BitsPerSample = 8 * tw->sampFmt;
+  tw->h.BlockAlign = (uint16_t) (numChannels * tw->sampFmt);
+  tw->h.BitsPerSample = (uint16_t) (8 * tw->sampFmt);
   tw->h.Subchunk2ID[0] = 'd';
   tw->h.Subchunk2ID[1] = 'a';
   tw->h.Subchunk2ID[2] = 't';
@@ -241,8 +241,9 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_INT16: {
       TW_ALLOC(int16_t, interleaved_data, tw->numChannels*len);
       size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
-      tw->totalFramesReadWritten += samples_read / tw->numChannels;
-      int frames_read = (int) samples_read / tw->numChannels;
+      uint32_t frames_read_u32 = (uint32_t) (samples_read / tw->numChannels);
+      tw->totalFramesReadWritten += frames_read_u32;
+      int frames_read = (int) frames_read_u32;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
           for (int pos = 0; pos < tw->numChannels * frames_read; pos++) {
@@ -277,8 +278,9 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     case TW_FLOAT32: {
       TW_ALLOC(float, interleaved_data, tw->numChannels*len);
       size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
-      tw->totalFramesReadWritten += samples_read / tw->numChannels;
-      int frames_read = (int) samples_read / tw->numChannels;
+      uint32_t frames_read_u32 = (uint32_t) (samples_read / tw->numChannels);
+      tw->totalFramesReadWritten += frames_read_u32;
+      int frames_read = (int) frames_read_u32;
       switch (tw->chanFmt) {
         case TW_INTERLEAVED: { // channel buffer is interleaved e.g. [LRLRLRLR]
           memcpy(data, interleaved_data, tw->numChannels*frames_read*sizeof(float));
@@ -365,10 +367,10 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       }
 
       size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
-      size_t frames_written = samples_written / tw->numChannels;
-      tw->totalFramesReadWritten += frames_written;
+      uint32_t frames_written_u32 = (uint32_t) (samples_written / tw->numChannels);
+      tw->totalFramesReadWritten += frames_written_u32;
       TW_DEALLOC(z);
-      return (int) frames_written;
+      return (int) frames_written_u32;
     }
     case TW_FLOAT32: {
       TW_ALLOC(float, z, tw->numChannels*len);
@@ -402,10 +404,10 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
       }
 
       size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
-      size_t frames_written = samples_written / tw->numChannels;
-      tw->totalFramesReadWritten += frames_written;
+      uint32_t frames_written_u32 = (uint32_t) (samples_written / tw->numChannels);
+      tw->totalFramesReadWritten += frames_written_u32;
       TW_DEALLOC(z);
-      return (int) frames_written;
+      return (int) frames_written_u32;
     }
     default: return 0;
   }
