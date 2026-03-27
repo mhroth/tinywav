@@ -40,8 +40,11 @@ TEST_CASE("Tinywav - Test Safeguards")
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == -1);
     }
 #endif
+
+    tinywav_close_read(&tw);
   }
-  
+
+
   SECTION("writing") {
     if (TestCommon::fileExists("bogus.wav")) {
       REQUIRE(std::remove("bogus.wav") == 0);
@@ -63,5 +66,7 @@ TEST_CASE("Tinywav - Test Safeguards")
       REQUIRE(tinywav_write_f(&tw, buffer, maxAllowedNumFrames16ch) == -1);
     }
 #endif
+
+    tinywav_close_write(&tw);
   }
 }
