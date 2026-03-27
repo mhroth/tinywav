@@ -43,6 +43,10 @@ TEST_CASE("Tinywav - Test Safeguards")
   }
   
   SECTION("writing") {
+    if (TestCommon::fileExists("bogus.wav")) {
+      REQUIRE(std::remove("bogus.wav") == 0);
+    }
+    
     TinyWav tw;
     REQUIRE(tinywav_open_write(&tw, 16, 8000, TW_FLOAT32, TW_INLINE, "bogus.wav") == 0);
     int maxAllowedNumFrames16ch = 8*1024; // max 16ch, 8kSamples
