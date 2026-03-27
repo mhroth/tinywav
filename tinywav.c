@@ -195,6 +195,16 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     return -1;
   }
   
+  // Sanity checks
+  if (tw->h.NumChannels < 1 || tw->h.NumChannels > 128) { // relevant because
+      tinywav_close_read(tw);
+      return -1;
+  }
+  if (tw->h.SampleRate < 1) {
+      tinywav_close_read(tw);
+      return -1;
+  }
+  
   // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
   while (fread(tw->h.Subchunk2ID, sizeof(char), 4, tw->f) == 4) {
     fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
@@ -217,6 +227,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     printf("[tinywav] Warning: wav file has %d bits per sample (int), which is not natively supported yet. Treating them as float; you may want to convert them manually after reading.\n", tw->h.BitsPerSample);
   }
 
+  // NOTE: previous sanity checks ensure div by zero is not possible here
   tw->numFramesInHeader = tw->h.Subchunk2Size / (tw->numChannels * tw->sampFmt);
   tw->totalFramesReadWritten = 0;
   
