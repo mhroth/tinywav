@@ -50,6 +50,9 @@
     #define TW_DEALLOC(x)
 #endif
 
+// Corresponds to 1MB for 32bit samples --> allows max of 16ch, 16kSamples blocksize reads/writes
+static const size_t REASONABLE_MAX_ALLOCA_SIZE = 16*16*1024; // in samples
+
 // MARK: private functions
 
 /** @returns true if the chunk of 4 characters matches the supplied string */
@@ -239,6 +242,14 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
   if (tw == NULL || data == NULL || len < 0 || !tinywav_isOpen(tw)) {
     return -1;
   }
+  if (len > tw->numFramesInHeader) {
+    return -1;
+  }
+#if TINYWAV_USE_ALLOCA
+  if (((size_t)tw->numChannels * len) > REASONABLE_MAX_ALLOCA_SIZE) {
+      return -1;
+  }
+#endif
   
   if (tw->totalFramesReadWritten * tw->h.BlockAlign >= tw->h.Subchunk2Size) {
     // We are past the 'data' subchunk (size as declared in header).
@@ -341,6 +352,11 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
   if (tw == NULL || f == NULL || len < 0 || !tinywav_isOpen(tw)) {
     return -1;
   }
+#if TINYWAV_USE_ALLOCA
+  if (((size_t)tw->numChannels * len) > REASONABLE_MAX_ALLOCA_SIZE) {
+      return -1;
+  }
+#endif
   
   // 1. Bring samples into interleaved format
   // 2. write to disk
