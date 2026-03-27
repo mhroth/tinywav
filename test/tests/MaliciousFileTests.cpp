@@ -18,7 +18,6 @@ TEST_CASE("Tinywav - Test behaviour with malicious input data")
 
 TEST_CASE("Tinywav - Test Safeguards")
 {
-  // This test assumes TW_USE_ALLOCA is enabled
   SECTION("Reading") {
     TinyWav tw;
     REQUIRE(tinywav_open_read(&tw, std::string(basedir + "example_32bitFloat-stereo.wav").c_str(), TW_INTERLEAVED) == 0);
@@ -35,12 +34,14 @@ TEST_CASE("Tinywav - Test Safeguards")
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == -1);
       free(buffer);
     }
+#if TINYWAV_USE_ALLOCA
     SECTION("trigger alloca safeguard") {
       float* buffer = (float*)malloc(numFramesToRead*tw.numChannels*sizeof(float));
       tw.numChannels = 32; // overwrite with another number of channels to trigger safeguard
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == -1);
       free(buffer);
     }
+#endif
   }
   
   SECTION("writing") {
@@ -53,11 +54,13 @@ TEST_CASE("Tinywav - Test Safeguards")
       REQUIRE(tinywav_write_f(&tw, buffer, maxAllowedNumFrames16ch) == maxAllowedNumFrames16ch);
       free(buffer);
     }
+#if TINYWAV_USE_ALLOCA
     SECTION("trigger alloca safeguard") {
       maxAllowedNumFrames16ch += 4; // too much!
       float* buffer = (float*)malloc(maxAllowedNumFrames16ch*tw.numChannels*sizeof(float));
       REQUIRE(tinywav_write_f(&tw, buffer, maxAllowedNumFrames16ch) == -1);
       free(buffer);
     }
+#endif
   }
 }
