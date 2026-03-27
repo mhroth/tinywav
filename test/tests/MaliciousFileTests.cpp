@@ -20,26 +20,24 @@ TEST_CASE("Tinywav - Test Safeguards")
 {
   SECTION("Reading") {
     TinyWav tw;
-    REQUIRE(tinywav_open_read(&tw, std::string(basedir + "example_32bitFloat-stereo.wav").c_str(), TW_INTERLEAVED) == 0);
+    REQUIRE(tinywav_open_read(&tw, std::string(basedir + "example_32bitFloat-mono.wav").c_str(), TW_INTERLEAVED) == 0);
     int numFramesToRead = tw.numFramesInHeader;
     
-    SECTION("try to read all samples than declared in header at once") {
+    SECTION("try to read all samples declared in header at once") {
       float* buffer = (float*)malloc(numFramesToRead*tw.numChannels*sizeof(float));
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == numFramesToRead);
       free(buffer);
     }
     SECTION("try to read more samples than declared in header") {
       numFramesToRead += 4; // too much!
-      float* buffer = (float*)malloc(numFramesToRead*tw.numChannels*sizeof(float));
+      float* buffer = nullptr; // should fail before trying to write to buffer
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == -1);
-      free(buffer);
     }
 #if TINYWAV_USE_ALLOCA
     SECTION("trigger alloca safeguard") {
-      float* buffer = (float*)malloc(numFramesToRead*tw.numChannels*sizeof(float));
+      float* buffer = nullptr; // should fail before trying to write to buffer
       tw.numChannels = 32; // overwrite with another number of channels to trigger safeguard
       REQUIRE(tinywav_read_f(&tw, buffer, numFramesToRead) == -1);
-      free(buffer);
     }
 #endif
   }
@@ -47,7 +45,7 @@ TEST_CASE("Tinywav - Test Safeguards")
   SECTION("writing") {
     TinyWav tw;
     REQUIRE(tinywav_open_write(&tw, 16, 8000, TW_FLOAT32, TW_INLINE, "bogus.wav") == 0);
-    int maxAllowedNumFrames16ch = 16*1024; // max 16ch, 16kSamples
+    int maxAllowedNumFrames16ch = 8*1024; // max 16ch, 8kSamples
    
     SECTION("try to write max samples") {
       float* buffer = (float*)malloc(maxAllowedNumFrames16ch*tw.numChannels*sizeof(float));
@@ -57,9 +55,8 @@ TEST_CASE("Tinywav - Test Safeguards")
 #if TINYWAV_USE_ALLOCA
     SECTION("trigger alloca safeguard") {
       maxAllowedNumFrames16ch += 4; // too much!
-      float* buffer = (float*)malloc(maxAllowedNumFrames16ch*tw.numChannels*sizeof(float));
+      float* buffer = nullptr; // should fail before trying to write to buffer
       REQUIRE(tinywav_write_f(&tw, buffer, maxAllowedNumFrames16ch) == -1);
-      free(buffer);
     }
 #endif
   }

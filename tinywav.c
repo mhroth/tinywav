@@ -50,8 +50,8 @@
     #define TW_DEALLOC(x)
 #endif
 
-// Corresponds to 1MB for 32bit samples --> allows max of 16ch, 16kSamples blocksize reads/writes
-static const size_t REASONABLE_MAX_ALLOCA_SIZE = 16*16*1024; // in samples
+// Corresponds to 0.5MB for 32bit samples --> allows max of 16ch, 8kSamples blocksize reads/writes
+static const size_t REASONABLE_MAX_ALLOCA_SIZE = 16*8*1024; // in samples
 
 // MARK: private functions
 
