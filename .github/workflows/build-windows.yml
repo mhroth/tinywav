@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
+        os: [windows-2025]
         platform: [x64, Win32, arm64]
         build_type: [Debug, Release]
         std: [14]
