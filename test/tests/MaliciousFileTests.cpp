@@ -5,32 +5,16 @@
 #include <cstdio>
 #include <cstring> // for memset
 #include <fstream>
-#include <cstdlib> // for mkstemp
+#include <cstdlib>
 
 #include "TestCommon.hpp"
-
-#if defined(_WIN32)
-  #include <io.h>
-  #define close(fd) _close(fd)
-#else
-  #include <unistd.h>
-#endif
-
 
 static auto basedir = std::string(TOSTRING(SOURCE_DIR)) + "/test/test-data/";
 
 TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
 {
-  if (sizeof(void*) != 4) {
-    SUCCEED("This regression applies only to 32-bit targets.");
-    return;
-  }
-
-  // Create a temporary file with random name
-  char tempPath[] = "/tmp/tinywav-malicious-XXXXXX";
-  int fd = mkstemp(tempPath);
-  REQUIRE(fd != -1);
-  close(fd);
+  const std::string tempPath = "tinywav-malicious-skipoversizedchunk.wav";
+  std::remove(tempPath.c_str());
 
   std::ofstream file(tempPath, std::ios::binary);
   REQUIRE(file.is_open());
@@ -46,10 +30,10 @@ TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
   file.close();
 
   TinyWav tw;
-  REQUIRE(tinywav_open_read(&tw, tempPath, TW_INTERLEAVED) == -1);
+  REQUIRE(tinywav_open_read(&tw, tempPath.c_str(), TW_INTERLEAVED) == -1);
   tinywav_close_read(&tw);
 
-  std::remove(tempPath);
+  std::remove(tempPath.c_str());
 }
 
 TEST_CASE("Tinywav - Test behaviour with malicious input data")
