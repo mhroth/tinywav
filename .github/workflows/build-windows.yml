@@ -8,8 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
-        platform: [x64, arm64]
+        os: [windows-2025]
+        platform: [x64, Win32, arm64]
         build_type: [Debug, Release]
         std: [14]
         tinywav_options: [ALLOCA, MALLOC] # VLA not supported with MSVC
@@ -35,7 +35,7 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        if: ${{ matrix.platform == 'x64' }}
+        if: ${{ matrix.platform != 'arm64' }}
         env:
             CTEST_OUTPUT_ON_FAILURE: 1
         run: ctest -C ${{matrix.build_type}} -j %NUMBER_OF_PROCESSORS%

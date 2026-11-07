@@ -66,6 +66,21 @@ static bool chunkIDMatches(char chunk[4], const char* chunkName)
   return true;
 }
 
+static int skip_subchunk(FILE *f, uint32_t chunkSize)
+{
+  const long startPos = ftell(f);
+  if ((startPos < 0) || (fseek(f, (long)chunkSize, SEEK_CUR) != 0)) {
+    return -1;
+  }
+
+  const long endPos = ftell(f);
+  if (endPos < startPos) {
+    return -1; // reject if position wrapped around
+  }
+
+  return 0; // success
+}
+
 // MARK: public functions
 
 int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, TinyWavSampleFormat sampFmt,
@@ -181,8 +196,9 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
     if (chunkIDMatches(tw->h.Subchunk1ID, "fmt ")) {
       break;
-    } else {
-      fseek(tw->f, tw->h.Subchunk1Size, SEEK_CUR); // skip this subchunk
+    } else if (skip_subchunk(tw->f, tw->h.Subchunk1Size) != 0) {
+      tinywav_close_read(tw);
+      return -1;
     }
   }
   
@@ -213,8 +229,9 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
     fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
     if (chunkIDMatches(tw->h.Subchunk2ID, "data")) {
       break;
-    } else {
-      fseek(tw->f, tw->h.Subchunk2Size, SEEK_CUR); // skip this subchunk
+    } else if (skip_subchunk(tw->f, tw->h.Subchunk2Size) != 0) {
+      tinywav_close_read(tw);
+      return -1;
     }
   }
     

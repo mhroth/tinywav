@@ -50,3 +50,42 @@ jobs:
       run: |
         cmake --build . --parallel 2
         ctest -C ${{ matrix.build_type }} -L TinywavTest -j 2
+
+  build-32bit:
+    name: Linux 32-bit, ${{matrix.tinywav_options}}, ${{matrix.build_type}}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        tinywav_options: [ALLOCA, MALLOC, VLA]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+        lfs: 'true'
+
+    - name: Install 32-bit toolchain
+      run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+
+    - name: Setup & Cmake (32-bit)
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_CXX_STANDARD=14 \
+              -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DTINYWAV_ALLOCATION=${{matrix.tinywav_options}} \
+              -DCMAKE_C_FLAGS=-m32 \
+              -DCMAKE_CXX_FLAGS=-m32 \
+              -DCMAKE_EXE_LINKER_FLAGS=-m32 \
+              -DCMAKE_SHARED_LINKER_FLAGS=-m32 \
+              ..
+
+    - name: Build & Run Tests (32-bit)
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      working-directory: build
+      run: |
+        cmake --build . --parallel 2
+        ctest -C ${{ matrix.build_type }} -L TinywavTest -j 2

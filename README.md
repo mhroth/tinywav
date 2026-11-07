@@ -89,7 +89,6 @@ tinywav_close_read(&tw);
 ```
 
 ## Running the Tests
-
 TinyWav relies on Cmake for its test builds. The automated tests are based on the [Catch2](https://github.com/catchorg/Catch2) C++ test framework.
 
 To run the tests, run one of the generator scripts in the `test/scripts` directory to generate a Xcode/VS project - or directly use Cmake in the commandline:
