@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <cstring> // for memset
 #include <fstream>
+#include <cstdlib> // for mkstemp
+#include <unistd.h> // for close
+
 #include "TestCommon.hpp"
 
 
@@ -17,8 +20,11 @@ TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
     return;
   }
 
-  char tempPath[L_mkstemp];
-  REQUIRE(std::tmpnam(tempPath) != nullptr);
+  // Create a temporary file with random name
+  char tempPath[] = "/tmp/tinywav-malicious-XXXXXX";
+  int fd = mkstemp(tempPath);
+  REQUIRE(fd != -1);
+  close(fd);
 
   std::ofstream file(tempPath, std::ios::binary);
   REQUIRE(file.is_open());
