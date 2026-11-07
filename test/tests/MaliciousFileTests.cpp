@@ -2,11 +2,43 @@
 #include <catch2/catch.hpp>
 #include "tinywav.h"
 
+#include <cstdio>
 #include <cstring> // for memset
+#include <fstream>
 #include "TestCommon.hpp"
 
 
 static auto basedir = std::string(TOSTRING(SOURCE_DIR)) + "/test/test-data/";
+
+TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
+{
+  if (sizeof(void*) != 4) {
+    SUCCEED("This regression applies only to 32-bit targets.");
+    return;
+  }
+
+  char tempPath[L_tmpnam];
+  REQUIRE(std::tmpnam(tempPath) != nullptr);
+
+  std::ofstream file(tempPath, std::ios::binary);
+  REQUIRE(file.is_open());
+
+  const unsigned char maliciousWav[] = {
+    'R', 'I', 'F', 'F',
+    0x18, 0x00, 0x00, 0x00,
+    'W', 'A', 'V', 'E',
+    'J', 'U', 'N', 'K',
+    0xF8, 0xFF, 0xFF, 0xFF
+  };
+  file.write(reinterpret_cast<const char*>(maliciousWav), sizeof(maliciousWav));
+  file.close();
+
+  TinyWav tw;
+  REQUIRE(tinywav_open_read(&tw, tempPath, TW_INTERLEAVED) == -1);
+  tinywav_close_read(&tw);
+
+  std::remove(tempPath);
+}
 
 TEST_CASE("Tinywav - Test behaviour with malicious input data")
 {
