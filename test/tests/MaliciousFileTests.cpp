@@ -17,7 +17,7 @@ TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
     return;
   }
 
-  char tempPath[L_tmpnam];
+  char tempPath[L_mkstemp];
   REQUIRE(std::tmpnam(tempPath) != nullptr);
 
   std::ofstream file(tempPath, std::ios::binary);
