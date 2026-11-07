@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022]
-        platform: [x64, x86, arm64]
+        platform: [x64, Win32, arm64]
         build_type: [Debug, Release]
         std: [14]
         tinywav_options: [ALLOCA, MALLOC] # VLA not supported with MSVC
