@@ -6,9 +6,15 @@
 #include <cstring> // for memset
 #include <fstream>
 #include <cstdlib> // for mkstemp
-#include <unistd.h> // for close
 
 #include "TestCommon.hpp"
+
+#if defined(_WIN32)
+  #include <io.h>
+  #define close(fd) _close(fd)
+#else
+  #include <unistd.h>
+#endif
 
 
 static auto basedir = std::string(TOSTRING(SOURCE_DIR)) + "/test/test-data/";
