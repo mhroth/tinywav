@@ -193,7 +193,10 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
   // Go through subchunks until we find 'fmt '  (There are sometimes JUNK or other chunks before 'fmt ')
   while (fread(tw->h.Subchunk1ID, sizeof(char), 4, tw->f) == 4) {
-    fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f);
+    if (fread(&tw->h.Subchunk1Size, sizeof(uint32_t), 1, tw->f) != 1) {
+      tinywav_close_read(tw);
+      return -1;
+    }
     if (chunkIDMatches(tw->h.Subchunk1ID, "fmt ")) {
       break;
     } else if (skip_subchunk(tw->f, tw->h.Subchunk1Size) != 0) {
@@ -226,7 +229,10 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   
   // skip over any other chunks before the "data" chunk (e.g. JUNK, INFO, bext, ...)
   while (fread(tw->h.Subchunk2ID, sizeof(char), 4, tw->f) == 4) {
-    fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f);
+    if (fread(&tw->h.Subchunk2Size, sizeof(uint32_t), 1, tw->f) != 1) {
+      tinywav_close_read(tw);
+      return -1;
+    }
     if (chunkIDMatches(tw->h.Subchunk2ID, "data")) {
       break;
     } else if (skip_subchunk(tw->f, tw->h.Subchunk2Size) != 0) {
@@ -279,7 +285,12 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
   switch (tw->sampFmt) {
     case TW_INT16: {
       TW_ALLOC(int16_t, interleaved_data, tw->numChannels*len);
-      size_t samples_read = fread(interleaved_data, sizeof(int16_t), tw->numChannels*len, tw->f);
+      size_t expected_samples = (size_t)(tw->numChannels * len);
+      size_t samples_read = fread(interleaved_data, sizeof(int16_t), expected_samples, tw->f);
+      if (samples_read != expected_samples) {
+        TW_DEALLOC(interleaved_data);
+        return -1;
+      }
       uint32_t frames_read_u32 = (uint32_t) (samples_read / tw->numChannels);
       tw->totalFramesReadWritten += frames_read_u32;
       int frames_read = (int) frames_read_u32;
@@ -316,7 +327,12 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
     }
     case TW_FLOAT32: {
       TW_ALLOC(float, interleaved_data, tw->numChannels*len);
-      size_t samples_read = fread(interleaved_data, sizeof(float), tw->numChannels*len, tw->f);
+      size_t expected_samples = (size_t)(tw->numChannels * len);
+      size_t samples_read = fread(interleaved_data, sizeof(float), expected_samples, tw->f);
+      if (samples_read != expected_samples) {
+        TW_DEALLOC(interleaved_data);
+        return -1;
+      }
       uint32_t frames_read_u32 = (uint32_t) (samples_read / tw->numChannels);
       tw->totalFramesReadWritten += frames_read_u32;
       int frames_read = (int) frames_read_u32;
@@ -410,7 +426,12 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: TW_DEALLOC(z); return 0;
       }
 
-      size_t samples_written = fwrite(z, sizeof(int16_t), tw->numChannels*len, tw->f);
+      size_t expected_samples = (size_t)(tw->numChannels * len);
+      size_t samples_written = fwrite(z, sizeof(int16_t), expected_samples, tw->f);
+      if (samples_written != expected_samples) {
+        TW_DEALLOC(z);
+        return -1;
+      }
       uint32_t frames_written_u32 = (uint32_t) (samples_written / tw->numChannels);
       tw->totalFramesReadWritten += frames_written_u32;
       TW_DEALLOC(z);
@@ -447,7 +468,12 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
         default: TW_DEALLOC(z); return 0;
       }
 
-      size_t samples_written = fwrite(z, sizeof(float), tw->numChannels*len, tw->f);
+      size_t expected_samples = (size_t)(tw->numChannels * len);
+      size_t samples_written = fwrite(z, sizeof(float), expected_samples, tw->f);
+      if (samples_written != expected_samples) {
+        TW_DEALLOC(z);
+        return -1;
+      }
       uint32_t frames_written_u32 = (uint32_t) (samples_written / tw->numChannels);
       tw->totalFramesReadWritten += frames_written_u32;
       TW_DEALLOC(z);
