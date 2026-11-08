@@ -89,6 +89,7 @@ int tinywav_open_write(TinyWav *tw, int16_t numChannels, int32_t samplerate, Tin
   if (tw == NULL || path == NULL || numChannels < 1 || samplerate < 1) {
     return -1;
   }
+  tw->f = NULL;
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "wb");
@@ -163,6 +164,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   if (tw == NULL || path == NULL) {
     return -1;
   }
+  tw->f = NULL;
   
 #if _WIN32
   errno_t err = fopen_s(&tw->f, path, "rb");
@@ -186,7 +188,7 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
   elementCount += fread(&tw->h.ChunkSize, sizeof(uint32_t), 1, tw->f);
   elementCount += fread(tw->h.Format, sizeof(char), 4, tw->f);
   
-  if (elementCount < 9 || !chunkIDMatches(tw->h.ChunkID, "RIFF") || !chunkIDMatches(tw->h.Format, "WAVE")) {
+  if (elementCount != 9 || !chunkIDMatches(tw->h.ChunkID, "RIFF") || !chunkIDMatches(tw->h.Format, "WAVE")) {
     tinywav_close_read(tw);
     return -1;
   }
@@ -203,6 +205,11 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
       tinywav_close_read(tw);
       return -1;
     }
+  }
+  if (!chunkIDMatches(tw->h.Subchunk1ID, "fmt ")) {  
+    // EOF, I/O error, or no fmt chunk
+    tinywav_close_read(tw);
+    return -1;
   }
   
   // fmt Subchunk
@@ -239,6 +246,11 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
       tinywav_close_read(tw);
       return -1;
     }
+  }
+  if (!chunkIDMatches(tw->h.Subchunk2ID, "data ")) {  
+    // EOF, I/O error, or no data chunk
+    tinywav_close_read(tw);
+    return -1;
   }
     
   tw->numChannels = tw->h.NumChannels;
