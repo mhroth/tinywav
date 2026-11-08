@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2024, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2015-2026, Martin Roth (mhroth@gmail.com)
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -100,12 +100,15 @@ int tinywav_open_read(TinyWav *tw, const char *path, TinyWavChannelFormat chanFm
  *              correct memory layout to match the specifications given in tinywav_open_read().
  * @param len   The number of frames (samples per channel) to read.
  *
- * @return The number of frames (samples per channel) read from file.
+ * @return The number of frames (samples per channel) read from file; -1 on error.
  */
 int tinywav_read_f(TinyWav *tw, void *data, int len);
 
-/** Stop reading the file. The Tinywav struct is now invalid. */
-void tinywav_close_read(TinyWav *tw);
+/** Stop reading the file. The Tinywav struct is now invalid.
+ *
+ * @return  The error code. Zero if no error.
+ */
+int tinywav_close_read(TinyWav *tw);
 
 /**
  * Write sample data to file.
@@ -115,12 +118,15 @@ void tinywav_close_read(TinyWav *tw);
  * @param f    A pointer to the sample data to write.
  * @param len  The number of frames (samples per channel) to write.
  *
- * @return The number of frames (samples per channel) written to file.
+ * @return The number of frames (samples per channel) written to file; -1 on error.
  */
 int tinywav_write_f(TinyWav *tw, void *f, int len);
 
-/** Stop writing to the file. The Tinywav struct is now invalid. */
-void tinywav_close_write(TinyWav *tw);
+/** Stop writing to the file. The Tinywav struct is now invalid.
+ *
+ * @return  The error code. Zero if no error.
+ */
+int tinywav_close_write(TinyWav *tw);
 
 /** Returns true if the Tinywav struct is available to read or write. False otherwise. */
 bool tinywav_isOpen(TinyWav *tw);
