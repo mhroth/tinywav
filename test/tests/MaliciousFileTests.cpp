@@ -29,25 +29,25 @@ TEST_CASE("Tinywav - rejects oversized skip chunk on 32-bit targets")
   file.write(reinterpret_cast<const char*>(maliciousWav), sizeof(maliciousWav));
   file.close();
 
-  TinyWav tw;
+  TinyWav tw = {0};
   REQUIRE(tinywav_open_read(&tw, tempPath.c_str(), TW_INTERLEAVED) == -1);
-  tinywav_close_read(&tw);
+  REQUIRE(tw.f == NULL);
 
   std::remove(tempPath.c_str());
 }
 
 TEST_CASE("Tinywav - Test behaviour with malicious input data")
 {
-  TinyWav tw;
+  TinyWav tw = {0};
   // without proper handling, this test could trigger a division by zero
   REQUIRE(tinywav_open_read(&tw, std::string(basedir + "malicious_numChannels0.wav").c_str(), TW_INTERLEAVED) == -1);
-  tinywav_close_read(&tw);
+  REQUIRE(tw.f == NULL);
 }
 
 TEST_CASE("Tinywav - Test Safeguards")
 {
   SECTION("Reading") {
-    TinyWav tw;
+    TinyWav tw = {0};
     REQUIRE(tinywav_open_read(&tw, std::string(basedir + "example_32bitFloat-mono.wav").c_str(), TW_INTERLEAVED) == 0);
     int numFramesToRead = tw.numFramesInHeader;
     
@@ -69,7 +69,7 @@ TEST_CASE("Tinywav - Test Safeguards")
     }
 #endif
 
-    tinywav_close_read(&tw);
+    REQUIRE(tinywav_close_read(&tw) == 0);
   }
 
 
@@ -78,7 +78,7 @@ TEST_CASE("Tinywav - Test Safeguards")
       REQUIRE(std::remove("bogus.wav") == 0);
     }
     
-    TinyWav tw;
+    TinyWav tw = {0};
     REQUIRE(tinywav_open_write(&tw, 16, 8000, TW_FLOAT32, TW_INLINE, "bogus.wav") == 0);
     int maxAllowedNumFrames16ch = 8*1024; // max 16ch, 8kSamples
    
@@ -95,6 +95,6 @@ TEST_CASE("Tinywav - Test Safeguards")
     }
 #endif
 
-    tinywav_close_write(&tw);
+    REQUIRE(tinywav_close_write(&tw) == 0);
   }
 }

@@ -371,13 +371,13 @@ int tinywav_read_f(TinyWav *tw, void *data, int len) {
   return ret;
 }
 
-void tinywav_close_read(TinyWav *tw) {
-  if (tw->f == NULL) {
-    return; // fclose(NULL) is undefined behaviour
+int tinywav_close_read(TinyWav *tw) {
+  if (tw == NULL || tw->f == NULL) {
+    return -1; // fclose(NULL) is undefined behaviour
   }
-  
-  fclose(tw->f);
+  int result = fclose(tw->f);
   tw->f = NULL;
+  return result;
 }
 
 int tinywav_write_f(TinyWav *tw, void *f, int len) {
@@ -483,9 +483,9 @@ int tinywav_write_f(TinyWav *tw, void *f, int len) {
   }
 }
 
-void tinywav_close_write(TinyWav *tw) {
+int tinywav_close_write(TinyWav *tw) { 
   if (tw == NULL || tw->f == NULL) {
-    return; // fclose(NULL) is undefined behaviour
+    return -1; // fclose(NULL) is undefined behaviour
   }
   
   uint32_t data_len = tw->totalFramesReadWritten * tw->numChannels * tw->sampFmt;
@@ -496,14 +496,20 @@ void tinywav_close_write(TinyWav *tw) {
   tw->h.Subchunk2Size = data_len;
   
   // set length of data
-  fseek(tw->f, 4, SEEK_SET); // offset of ChunkSize
-  fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f); // write ChunkSize
-  
-  fseek(tw->f, 40, SEEK_SET); // offset Subchunk2Size
-  fwrite(&data_len, sizeof(uint32_t), 1, tw->f); // write Subchunk2Size
-  
-  fclose(tw->f);
+  int result = 0;
+  if ((fseek(tw->f, 4, SEEK_SET) != 0) ||                              /* offset of ChunkSize */
+      (fwrite(&chunkSize_len, sizeof(uint32_t), 1, tw->f) != 1) ||
+      (fseek(tw->f, 40, SEEK_SET) != 0) ||                             /* offset of Subchunk2Size */
+      (fwrite(&data_len, sizeof(uint32_t), 1, tw->f) != 1)) {
+    result = -1;
+  }
+
+  if (fclose(tw->f) != 0) {   /* always close, even after an earlier failure */
+    result = -1;
+  }
   tw->f = NULL;
+
+  return result;
 }
 
 bool tinywav_isOpen(TinyWav *tw) {
