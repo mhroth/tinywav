@@ -8,18 +8,20 @@
 A minimal C library for reading and writing (32-bit float or 16-bit int) WAV audio files. Designed for maximum portability.
 
 * TinyWav takes and provides audio samples in configurable channel formats (interleaved, split, inline). WAV files always store samples in interleaved format.
-* TinyWav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`.
+* TinyWav is minimal: it can only read/write RIFF WAV files with sample format `float32` or `int16`. Big-Endian hosts not supported.
 * TinyWav does not allocate any memory on the heap. It uses `alloca` internally, which allocates on the stack. In practice, this restricts the block size to "reasonable" values, so watch out for stack overflows. 
 	* In default `TINYWAV_USE_ALLOCA` mode, the `read()` and `write()` will return an error if the allocation exceeds 0.5 MegaBytes, which corresponds e.g. to reading/writing 8k 32-bit sample chunks for 16 channels.
    * On platforms where `alloca` is not available (e.g. some DSP compilers), `TINYWAV_USE_VLA` or `TINYWAV_USE_MALLOC` can be defined for alternate allocation.
 
-**CI/CD**: To guarantee portability, TinyWav is built and tested on several platforms, compilers & architectures:
+**CI/CD**: To guarantee portability, TinyWav is built and tested on several platforms, compilers & architectures (debug, release):
 
-![](https://img.shields.io/badge/macos-Clang_14-teal)
-![](https://img.shields.io/badge/linux-GCC_9-teal)
-![](https://img.shields.io/badge/linux-GCC_11-teal)
-![](https://img.shields.io/badge/windows-MSVC_VS2022_(x64)-teal)
-![](https://img.shields.io/badge/windows-MSVC_VS2022_(arm64)_[build_only]-teal)
+![](https://img.shields.io/badge/macos-Clang_(latest,_arm64)-teal)
+![](https://img.shields.io/badge/linux-GCC_9_(x86_64)-teal)
+![](https://img.shields.io/badge/linux-GCC_11_(x86_64)-teal)
+![](https://img.shields.io/badge/linux-GCC_11_(x86)-teal)
+![](https://img.shields.io/badge/windows-MSVC_VS2025_(x64)-teal)
+![](https://img.shields.io/badge/windows-MSVC_VS2025_(arm64)_[build_only]-teal)
+![](https://img.shields.io/badge/windows-MSVC_VS2025_(Win32)-teal)
 [![Build & Test](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/mhroth/tinywav/actions/workflows/workflow.yml)
 
 ## Code Example
@@ -88,7 +90,8 @@ for (int i = 0; i < 100; i++) {
 tinywav_close_read(&tw);
 ```
 
-## Running the Tests
+
+## Running the Tests
 TinyWav relies on Cmake for its test builds. The automated tests are based on the [Catch2](https://github.com/catchorg/Catch2) C++ test framework.
 
 To run the tests, run one of the generator scripts in the `test/scripts` directory to generate a Xcode/VS project - or directly use Cmake in the commandline:
